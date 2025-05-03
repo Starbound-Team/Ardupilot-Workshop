@@ -11,6 +11,7 @@ git clone https://github.com/ArduPilot/ardupilot.git --recurse-submodules
 ***Setup the virtual environment***
 
 *Navigate to the clone repositor, then Tools/environment_install, and execute the script that matches your distro*
+
 For example on ubuntu (and ubuntu-based distros):
 ```bash
 bash install-prereqs-ubuntu.sh
