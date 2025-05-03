@@ -27,6 +27,7 @@ bash install-prereques-arch.sh
 ```
 
 ***Run the simulation***
+
 For the first time:
 ```bash
 cd Tools/autotest/
