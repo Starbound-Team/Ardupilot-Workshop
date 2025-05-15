@@ -1,0 +1,1595 @@
+/* Responsive Design for StarBound Website */
+
+/* Base responsive styles */
+* {
+    box-sizing: border-box;
+}
+
+/* General responsive rules */
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Flag visibility toggle for mobile menu */
+.flags-hidden {
+    display: none !important;
+}
+
+/* Hide top bar flags in mobile and tablet views */
+@media (max-width: 992px) {
+    .nav-links .flags:not(.mobile-flags) {
+        display: none !important;
+    }
+}
+
+/* Improved container responsiveness */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Responsive text sizing for better readability */
+@media screen {
+    html {
+        font-size: 100%; /* Base font size */
+    }
+    
+    h1, .h1 {
+        font-size: 2.5rem;
+    }
+    
+    h2, .h2 {
+        font-size: 2rem;
+    }
+    
+    h3, .h3 {
+        font-size: 1.75rem;
+    }
+    
+    h4, .h4 {
+        font-size: 1.5rem;
+    }
+    
+    p, li, td, th {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+}
+
+/* Media queries for different screen sizes */
+
+/* Special styles for 1366x768 resolution (common laptop size) */
+@media (width: 1366px) and (height: 768px) {
+    /* Top bar adjustments for 1366x768 */
+    .nav-links {
+        padding: 8px 15px;
+        height: 75px; /* Slightly smaller height for this resolution */
+    }
+    
+    .nav-links .logo-img {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .nav-links .company-name {
+        width: 220px; /* Slightly narrower for this resolution */
+    }
+    
+    .company-title {
+        font-size: 24px; /* Smaller font size */
+    }
+    
+    .company-subtitle {
+        font-size: 11px; /* Smaller subtitle */
+    }
+    
+    .partner-logo {
+        height: 40px;
+        margin-left: 10px;
+    }
+    
+    .nav-links .nav-items {
+        margin-left: 5px;
+    }
+    
+    .nav-links li {
+        margin: 0 8px; /* Tighter spacing */
+    }
+    
+    .nav-links li a {
+        font-size: 18px; /* Smaller font size */
+    }
+    
+    .nav-links .join-button {
+        font-size: 16px;
+        padding: 7px 14px;
+    }
+    
+    .nav-links .flags {
+        right: 30px;
+    }
+    
+    .nav-links .flag {
+        width: 28px;
+    }
+}
+
+/* Special styles for 1280x768 resolution (smaller laptop size) */
+@media (max-width: 1280px) {
+    /* Top bar adjustments for 1280x768 */
+    .nav-links {
+        padding: 5px 10px;
+        height: 70px; /* Reduced height */
+        justify-content: space-between; /* Better distribution of space */
+    }
+    
+    .nav-links .logo {
+        margin-right: 5px;
+    }
+    
+    .nav-links .logo-img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .nav-links .company-name {
+        width: 180px; /* Narrower for this resolution */
+        margin-right: 5px;
+    }
+    
+    .company-title {
+        font-size: 20px; /* Smaller font size */
+    }
+    
+    .company-subtitle {
+        font-size: 10px; /* Smaller subtitle */
+    }
+    
+    .partner-logos {
+        margin-right: 10px;
+    }
+    
+    .partner-logo {
+        height: 35px;
+        margin-left: 5px;
+    }
+    
+    .nav-links .nav-items {
+        margin-left: 0;
+        display: flex;
+        flex-wrap: nowrap; /* Prevent wrapping */
+        justify-content: center;
+    }
+    
+    .nav-links li {
+        margin: 0 4px; /* Tighter spacing */
+    }
+    
+    .nav-links li a {
+        font-size: 15px; /* Smaller font size */
+        white-space: nowrap; /* Prevent text wrapping */
+    }
+    
+    .nav-links .join-button {
+        font-size: 14px;
+        padding: 6px 12px;
+        white-space: nowrap;
+    }
+    
+    .nav-links .flags {
+        right: 10px;
+    }
+    
+    .nav-links .flag {
+        width: 25px;
+        margin: 3px 5px; /* Reduced margin */
+    }
+    
+    /* Greek specific adjustments */
+    :lang(el) .nav-links li {
+        margin: 0 2px; /* Even tighter spacing for Greek */
+    }
+    
+    :lang(el) .nav-links li a {
+        font-size: 14px; /* Slightly smaller for Greek */
+    }
+    
+    :lang(el) .nav-links .join-button {
+        font-size: 13px;
+        padding: 6px 10px; /* Smaller padding */
+    }
+}
+
+/* Extra Large devices (large desktops and ultrawide) */
+@media (min-width: 1401px) {
+    .container {
+        max-width: 1320px;
+    }
+    
+    /* Better spacing for ultrawide displays */
+    .content-section {
+        gap: 60px;
+    }
+    
+    /* Larger images on ultrawide displays */
+    .news-image {
+        height: 250px;
+    }
+    
+    .main-news .news-image {
+        height: 400px;
+    }
+    
+    /* Navigation improvements for ultrawide */
+    .nav-links {
+        padding: 10px 40px;
+    }
+    
+    .nav-links li {
+        margin: 0 20px !important;
+    }
+    
+    /* Improved footer spacing */
+    .footer-container {
+        max-width: 1320px;
+    }
+}
+
+/* Large devices (desktops) */
+@media (max-width: 1200px) {
+    .nav-links {
+        padding: 5px 15px;
+    }
+    
+    .nav-links .company-name {
+        width: 200px;
+    }
+    
+    .company-title {
+        font-size: 24px;
+    }
+    
+    .partner-logos {
+        margin-right: 20px;
+    }
+    
+    /* Contact page adjustments */
+    .form-map-wrapper {
+        flex-direction: column;
+    }
+    
+    .contact-form-container, .map-sidebar {
+        width: 90%;
+        margin: 0 auto 30px;
+    }
+    
+    /* Improved image responsiveness */
+    .news-image img, .supporter-logo img, .member-photo {
+        object-fit: cover;
+        width: 100%;
+    }
+}
+
+/* Medium devices (tablets) */
+@media (max-width: 992px) {
+    .nav-links {
+        height: auto;
+        padding: 5px 5px 5px 0; /* Remove left padding completely */
+        justify-content: flex-start;
+    }
+    
+    .nav-links .logo {
+        margin-right: 5px;
+        margin-left: 0; /* No left margin */
+    }
+    
+    /* Keeping original StarBound header size */
+    .nav-links .logo-img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    /* Move partner logos closer to header and make them bigger */
+    .partner-logos {
+        margin-left: 5px; /* Changed from auto to create specific spacing */
+        margin-right: 30px; /* Reduced from 50px */
+    }
+    
+    .partner-logo {
+        height: 40px; /* Increased from 30px */
+        margin: 0 2px;
+    }
+    
+    /* Fix flag positioning for tablets - change from fixed to absolute */
+    .nav-links .flags {
+        position: absolute !important; /* Changed from fixed to absolute */
+        right: 60px !important;
+        top: 15px !important;
+        flex-direction: row !important;
+        margin-top: 0 !important;
+        z-index: 1009 !important;
+    }
+    
+    /* Style for flags inside the mobile menu */
+    .mobile-menu-flags {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        width: 100%;
+    }
+    
+    .mobile-menu-flags .mobile-flags {
+        display: flex !important;
+        position: static !important;
+        flex-direction: row !important;
+        margin: 0 !important;
+        justify-content: center;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+    
+    .mobile-menu-flags .flag {
+        width: 40px;
+        height: auto;
+        margin: 0 10px;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    
+    .mobile-menu-flags .flag:hover {
+        transform: scale(1.1);
+    }
+    
+    .nav-links .company-name {
+        width: auto; /* Remove fixed width constraints */
+        max-width: none; /* Remove max-width limits */
+        margin-right: 5px;
+        margin-left: 0;
+        padding-left: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center align items horizontally */
+        white-space: normal; /* Allow text to wrap if needed */
+        overflow: visible; /* Ensure text isn't cut off */
+    }
+    
+    .company-title {
+        font-size: 22px;
+        text-align: center; /* Center the text just like on desktop */
+        padding-left: 0;
+        overflow: visible; /* Ensure text isn't cut off */
+        white-space: normal; /* Allow text to wrap if needed */
+        width: 100%;
+    }
+    
+    .company-subtitle {
+        font-size: 10px;
+        text-align: center; /* Center the text just like on desktop */
+        padding-left: 0;
+        overflow: visible; /* Ensure text isn't cut off */
+        white-space: normal; /* Allow text to wrap if needed */
+        text-overflow: clip; /* Remove ellipsis */
+        width: 100%;
+    }
+    
+    /* Adjusting other elements to accommodate the original header */
+    .nav-links .nav-items {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .nav-links li {
+        margin: 5px 10px;
+    }
+    
+    .nav-links li a {
+        font-size: 18px;
+    }
+    
+    .nav-links .flags {
+        position: relative;
+        right: auto;
+        top: auto;
+        margin-top: 5px;
+    }
+    
+    /* Contact form adjustments */
+    .responsive-container-block {
+        flex-direction: column;
+    }
+    
+    .responsive-cell-block {
+        width: 100% !important;
+    }
+    
+    /* Team and supporters layout */
+    .member-card, .supporter-card {
+        width: calc(50% - 20px) !important;
+    }
+    
+    /* Ensure member cards remain circular - nearly doubled size */
+    .member-card {
+        border-radius: 50% !important;
+        width: 350px !important;
+        height: 350px !important;
+        margin: 0 auto 30px;
+        aspect-ratio: 1/1;
+        overflow: hidden;
+    }
+    
+    .member-photo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    
+    /* Adjust member info for better visibility */
+    .member-info {
+        padding: 15px;
+    }
+    
+    .member-name {
+        font-size: 20px;
+    }
+    
+    .member-role {
+        font-size: 16px;
+    }
+    
+    /* News page grid */
+    .news-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .news-column.main-news {
+        grid-column: span 2;
+    }
+    
+    .news-filter {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .news-filter select {
+        min-width: 150px;
+    }
+    
+    .mobile-menu-btn {
+        display: block;
+    }
+    
+    .nav-links {
+        position: relative;
+    }
+    
+    .nav-items {
+        display: none !important; /* Force hide by default */
+        flex-direction: column;
+        width: 100%;
+        text-align: center;
+        background-color: rgba(25, 33, 80, 0.95);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100vh;
+        padding: 60px 0 30px;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        z-index: 1005;
+        overflow-y: auto;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-items.mobile-active {
+        display: flex !important;
+    }
+    
+    .nav-items li {
+        margin: 12px 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .nav-items li a {
+        color: #ffffff;
+        font-size: 18px;
+        padding: 10px 0;
+        display: block;
+        width: 60%;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-items li a:hover {
+        color: #34efdf;
+        transform: scale(1.05);
+    }
+    
+    /* Fix "Join Us" button alignment in mobile menu */
+    .nav-items li .join-button {
+        width: 180px;
+        margin: 15px auto;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: auto;
+        text-align: center;
+        background: linear-gradient(135deg, #3490dc, #6574cd);
+        color: white;
+        border-radius: 25px;
+        box-shadow: 0 2px 10px rgba(52, 144, 220, 0.5);
+        font-weight: bold;
+    }
+    
+    .flags {
+        position: static !important;
+        margin-top: 20px !important;
+    }
+    
+    /* This will hide the menu button when scrolling down slightly */
+    .mobile-menu-btn.hidden {
+        opacity: 0.3;
+    }
+    
+    /* Make cosmic-title fit smaller screens */
+    .cosmic-title {
+        font-size: 40px; /* Reduce font size for medium screens */
+        padding: 0 15px; /* Add some padding on the sides */
+        word-wrap: break-word; /* Allow word wrapping */
+    }
+    
+    /* Improve visibility of the category tags */
+    .category-tag {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+    
+    /* Better spacing of content sections */
+    .content-section {
+        gap: 40px;
+    }
+    
+    /* Better form responsiveness */
+    input, textarea, select {
+        font-size: 16px !important; /* Prevent zooming on iOS */
+    }
+    
+    /* Ensure top 3 news items appear one under the other */
+    .top-news-grid {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .top-news-grid .news-card {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .top-news-grid .main-news {
+        grid-column: span 1;
+    }
+}
+
+/* Small devices (landscape phones) */
+@media (max-width: 768px) {
+    .nav-links {
+        padding: 5px 5px 5px 0; /* No left padding */
+        flex-direction: row;
+        height: auto;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    
+    /* Hide only the "Περισσότερα" text in Greek mode but keep "More News" */
+    html[lang="el"] .section-divider[data-translate="moreNews"]::before {
+        content: "";
+        display: none;
+    }
+    
+    /* Hide "Περισσότερα" text on mobile devices for news section divider */
+    html[lang="el"] .section-divider[data-text="Περισσότερα More News"]::after {
+        content: "More News";
+    }
+    
+    /* Move header further left */
+    .nav-links .logo {
+        margin-right: 2px;
+        margin-bottom: 0;
+        margin-left: 0;
+    }
+    
+    .nav-links .logo-img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    /* Move partner logos closer to the header and make them bigger */
+    .partner-logos {
+        margin-left: 8px; /* Changed from auto to specific spacing */
+        margin-right: 30px; /* Reduced right margin */
+    }
+    
+    .partner-logo {
+        height: 35px; /* Bigger logo size */
+        margin: 0 1px;
+    }
+    
+    /* Fix flag positioning for landscape phones - change from fixed to absolute */
+    .nav-links .flags {
+        position: absolute !important; /* Changed from fixed to absolute */
+        right: 60px !important;
+        top: 15px !important;
+        flex-direction: row !important;
+        margin: 0 !important;
+        z-index: 1009 !important;
+    }
+    
+    .nav-links .flag {
+        width: 25px !important;
+        height: auto !important;
+        margin: 0 5px !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .nav-links .company-name {
+        width: auto;
+        max-width: none; /* Remove max-width limits */
+        margin-right: 4px;
+        margin-left: 0;
+        padding-left: 0;
+        overflow: visible; /* Ensure text isn't cut off */
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center align items horizontally */
+    }
+    
+    .company-title {
+        font-size: 20px;
+        text-align: center;
+        overflow: visible;
+        width: 100%;
+    }
+    
+    .company-subtitle {
+        font-size: 9px;
+        text-align: center;
+        overflow: visible;
+        white-space: normal; /* Allow text to wrap if needed */
+        text-overflow: clip;
+        width: 100%;
+    }
+    
+    /* Move the partner logos closer */
+    .partner-logos {
+        margin: 0;
+        margin-left: 5px; /* Small margin between header and partner logos */
+        margin-right: 35px; /* Space for menu button */
+    }
+    
+    .partner-logo {
+        height: 25px;
+        margin: 0 2px;
+    }
+    
+    .nav-links .nav-items {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .nav-links li {
+        margin: 10px 0;
+    }
+    
+    .nav-links .join-button {
+        width: 160px;
+        margin: 15px auto;
+        padding: 12px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        height: auto;
+        border-radius: 25px;
+        background: linear-gradient(135deg, #3490dc, #6574cd);
+        color: white;
+        box-shadow: 0 2px 10px rgba(52, 144, 220, 0.5);
+        font-weight: bold;
+    }
+    
+    /* Contact form further adjustments */
+    .form-box {
+        padding: 20px !important;
+    }
+    
+    /* Team and supporters layout */
+    .member-card, .supporter-card {
+        width: 100% !important;
+    }
+    
+    /* Ensure member cards remain circular - nearly doubled size */
+    .member-card {
+        border-radius: 50% !important;
+        width: 310px !important;
+        height: 310px !important;
+        margin: 0 auto 25px;
+        aspect-ratio: 1/1;
+        overflow: hidden;
+    }
+    
+    /* Adjust member info for better visibility */
+    .member-info {
+        padding: 12px;
+    }
+    
+    .member-name {
+        font-size: 19px;
+    }
+    
+    .member-role {
+        font-size: 15px;
+    }
+    
+    /* Make flags horizontal */
+    .nav-links .flags {
+        flex-direction: row;
+        margin: 10px 0;
+    }
+    
+    /* News page grid */
+    .news-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .news-column {
+        margin-bottom: 20px;
+    }
+    
+    .news-column.main-news {
+        grid-column: span 1;
+    }
+    
+    /* Ensure top 3 news items appear one under the other */
+    .top-news-grid {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .top-news-grid .news-card {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .top-news-grid .main-news {
+        grid-column: span 1.
+    }
+    
+    /* News filter responsive styling for small devices */
+    .news-filter {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 0 15px;
+    }
+    
+    .news-filter span {
+        text-align: left;
+        margin-bottom: 5px;
+    }
+    
+    .news-filter input,
+    .news-filter select {
+        width: 100%;
+        min-width: unset;
+    }
+    
+    /* Form-map wrapper */
+    .form-map-wrapper {
+        flex-direction: column;
+    }
+    
+    .contact-form-container, .map-sidebar {
+        width: 100%;
+    }
+    
+    /* Further reduce cosmic-title size for small screens */
+    .cosmic-title {
+        font-size: 36px;
+        padding: 0 10px;
+        line-height: 1.2; /* Improve line spacing */
+    }
+    
+    .planet {
+        opacity: 0.3.
+    }
+    
+    /* Better handling of the news section divider text */
+    .section-divider::after {
+        font-size: 1.1rem;
+        padding: 5px 15px;
+        white-space: nowrap;
+        z-index: 10.
+    }
+    
+    /* Better button sizing for touch interfaces */
+    button, .button, .read-more, .submit-btn {
+        min-height: 44px; /* Improved touch target */
+        padding: 10px 20px;
+    }
+    
+    /* Better footer layout */
+    .footer-section {
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    
+    /* Email display fix for mobile */
+    .info-item.email-item p {
+        font-size: 12px;
+        word-break: keep-all;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 210px; /* Limit width to container size */
+    }
+}
+
+/* Extra small devices (phones) */
+@media (max-width: 576px) {
+    .nav-links {
+        padding: 3px 15px 3px 0; /* Adjusted right padding */
+    }
+    
+    /* Move header further left */
+    .nav-links .logo-img {
+        width: 45px;
+        height: 45px;
+        margin-left: 0;
+        margin-right: 2px;
+    }
+    
+    /* Move partner logos closer and make them bigger */
+    .partner-logos {
+        margin-left: 10px; /* Changed from auto to specific spacing */
+        margin-right: 32px; /* Adjusted for better positioning */
+    }
+    
+    .partner-logo {
+        height: 30px; /* Increased size */
+        margin: 0 1px;
+    }
+    
+    /* Fix flag positioning for phones - change from fixed to absolute */
+    .nav-links .flags {
+        position: absolute !important; /* Changed from fixed to absolute */
+        right: 60px !important;
+        top: 15px !important;
+        flex-direction: row !important;
+        margin: 0 !important;
+        z-index: 1009 !important;
+    }
+    
+    /* Adjust mobile menu flags for smaller screens */
+    .mobile-menu-flags .flag {
+        width: 35px;
+        margin: 0 8px;
+    }
+    
+    .nav-links .flag {
+        width: 22px !important;
+        height: auto !important;
+        margin: 0 4px !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .nav-links .company-name {
+        width: auto;
+        max-width: none; /* Remove max-width limits */
+        margin-left: 0;
+        padding-left: 0;
+        overflow: visible; /* Ensure text isn't cut off */
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center align items horizontally */
+    }
+    
+    .company-title {
+        font-size: 18px;
+        text-align: center;
+        overflow: visible; /* Ensure text isn't cut off */
+        width: 100%;
+    }
+    
+    .company-subtitle {
+        font-size: 8px;
+        text-align: center;
+        white-space: normal; /* Allow text to wrap if needed */
+        overflow: visible; /* Ensure text isn't cut off */
+        text-overflow: clip; /* Remove ellipsis */
+        width: 100%;
+    }
+    
+    /* Keep the header visible but move left */
+    .nav-links .company-name {
+        width: auto; /* Allow natural width */
+        max-width: 120px; /* But limit maximum */
+    }
+    
+    /* Adjust partner logos positioning */
+    .partner-logos {
+        margin-left: 2px; /* Minimal spacing */
+        margin-right: 30px; /* Space for menu button */
+    }
+    
+    .partner-logo {
+        height: 20px;
+        margin: 0 1px;
+    }
+    
+    /* Tighten spacing in forms and content areas */
+    .contact_us_2 .input, .contact_us_2 .textinput {
+        padding: 12px !important;
+    }
+    
+    /* Additional spacing adjustments */
+    .space-background, .hero-section, .contact-container, .news-container, .supporters-container, .members-container {
+        padding: 60px 15px 20px !important;
+    }
+    
+    .supporters-title, .members-title, .page-header .title {
+        font-size: 1.8rem;
+    }
+    
+    .supporters-category h2, .section-title, .team-section h2 {
+        font-size: 1.5rem;
+    }
+    
+    .submit-btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+    
+    .map-container iframe {
+        height: 300px;
+    }
+    
+    /* Ensure member cards remain circular - nearly doubled size */
+    .member-card {
+        border-radius: 50% !important;
+        width: 270px !important;
+        height: 270px !important;
+        margin: 0 auto 25px;
+    }
+    
+    /* Adjust member info for better visibility */
+    .member-info {
+        padding: 10px;
+    }
+    
+    .member-name {
+        font-size: 18px;
+    }
+    
+    .member-role {
+        font-size: 14px;
+    }
+    
+    /* Improve "Join Us" button alignment in mobile menu for small phones */
+    .nav-items li .join-button {
+        width: 140px;
+        padding: 10px 0;
+        margin: 12px auto;
+        font-size: 16px;
+        background: linear-gradient(135deg, #3490dc, #6574cd);
+        color: white;
+        border-radius: 25px;
+        box-shadow: 0 2px 10px rgba(52, 144, 220, 0.5);
+        font-weight: bold;
+    }
+    
+    .nav-items li {
+        margin: 8px 0.
+    }
+    
+    .nav-items li a {
+        width: 75%;
+        padding: 8px 0;
+        font-size: 16px;
+    }
+    
+    /* News filter responsive styling for extra small devices */
+    .news-filter {
+        margin-bottom: 20px;
+    }
+    
+    .news-filter input {
+        padding: 10px;
+        margin-bottom: 5px;
+    }
+    
+    .news-filter select {
+        padding: 10px;
+        margin-bottom: 5px;
+    }
+    
+    /* Make cosmic-title even smaller for phones */
+    .cosmic-title {
+        font-size: 28px;
+        padding: 0 5px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    
+    /* Special styling for Greek title which is longer */
+    html[lang="el"] .cosmic-title {
+        font-size: 24px; /* Slightly smaller for Greek */
+        letter-spacing: 0; /* Reduce letter spacing to fit */
+        white-space: nowrap; /* Prevent "ΜΑΖΙ ΜΑΣ" from wrapping */
+    }
+    
+    /* Improved page headers */
+    .page-header {
+        margin-bottom: 25px;
+    }
+    
+    .page-header .title {
+        font-size: 2rem;
+        margin-bottom: 5px;
+    }
+    
+    .page-header .subtitle {
+        font-size: 1rem;
+    }
+    
+    /* Better handling of news cards */
+    .news-card {
+        margin-bottom: 15px;
+    }
+    
+    .news-content {
+        padding: 15px;
+    }
+    
+    .news-content h3 {
+        font-size: 1.2rem;
+        margin-bottom: 8px;
+    }
+    
+    .news-date {
+        font-size: 0.8rem;
+        margin-bottom: 10px;
+    }
+    
+    /* Adjust email display for smaller devices */
+    .info-item.email-item p {
+        font-size: 11px;
+        max-width: 170px; /* Further reduce max width */
+    }
+}
+
+/* Mobile phones (smaller devices) */
+@media (max-width: 480px) {
+    .nav-links {
+        padding: 3px 15px 3px 0; /* Adjusted right padding */
+        align-items: center;
+    }
+    
+    /* Move header further left */
+    .nav-links .logo-img {
+        width: 40px;
+        height: 40px;
+        margin-left: 0;
+        margin-right: 1px;
+    }
+    
+    /* Keep company name compact */
+    .nav-links .company-name {
+        width: auto;
+        max-width: none; /* Remove max-width constraints */
+        margin-right: 2px;
+        margin-left: 0;
+        padding-left: 0;
+        overflow: visible; /* Ensure text isn't cut off */
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center align items horizontally */
+    }
+    
+    .company-title {
+        font-size: 16px;
+        text-align: center;
+        overflow: visible; /* Ensure text isn't cut off */
+        width: 100%;
+    }
+    
+    .company-subtitle {
+        font-size: 7px;
+        text-align: center;
+        display: block;
+        white-space: normal; /* Allow text to wrap if needed */
+        overflow: visible; /* Ensure text isn't cut off */
+        text-overflow: clip; /* Remove ellipsis */
+        width: 100%;
+    }
+    
+    /* Move partner logos closer and keep them larger */
+    .partner-logos {
+        flex-direction: row;
+        align-items: center;
+        margin-left: 12px; /* Changed from auto to create specific spacing */
+        margin-right: 28px; /* Reduced from 40px */
+    }
+    
+    .partner-logo {
+        height: 25px; /* Still relatively large */
+        margin: 0 1px;
+    }
+    
+    /* Fix flag positioning for very small devices - change from fixed to absolute */
+    .nav-links .flags {
+        position: absolute !important; /* Changed from fixed to absolute */
+        right: 55px !important;
+        top: 15px !important; 
+        flex-direction: row !important;
+        margin: 0 !important;
+        z-index: 1009 !important;
+    }
+    
+    /* Even smaller flags for very small devices */
+    .mobile-menu-flags .flag {
+        width: 30px;
+        margin: 0 5px;
+    }
+    
+    /* Ensure member cards remain circular - nearly doubled size */
+    .member-card {
+        border-radius: 50% !important;
+        width: 230px !important;
+        height: 230px !important;
+        margin: 0 auto 20px;
+    }
+    
+    /* Adjust member info for better visibility */
+    .member-info {
+        padding: 8px;
+    }
+    
+    .member-name {
+        font-size: 17px;
+    }
+    
+    .member-role {
+        font-size: 13px;
+    }
+    
+    /* Improve "Join Us" button alignment in mobile menu for very small phones */
+    .nav-items li .join-button {
+        width: 120px;
+        padding: 8px 0;
+        margin: 10px auto;
+        font-size: 15px;
+        background: linear-gradient(135deg, #3490dc, #6574cd);
+        color: white;
+        border-radius: 25px;
+        box-shadow: 0 2px 10px rgba(52, 144, 220, 0.5);
+        font-weight: bold;
+    }
+    
+    .nav-items li {
+        margin: 6px 0.
+    }
+    
+    .nav-items li a {
+        width: 80%;
+        padding: 7px 0;
+        font-size: 15px;
+    }
+    
+    /* Additional news filter adjustments for very small devices */
+    .section-divider::after {
+        font-size: 1rem;
+        padding: 3px 15px;
+    }
+    
+    /* Special styling for Greek title which is longer */
+    html[lang="el"] .cosmic-title {
+        font-size: 22px; /* Even smaller for very small screens */
+        letter-spacing: -0.5px; /* Slight negative letter spacing to help fit */
+        white-space: nowrap; /* Prevent "ΜΑΖΙ ΜΑΣ" from wrapping */
+    }
+    
+    /* Additional improvements for very small screens */
+    .news-image {
+        height: 180px;
+    }
+    
+    .main-news .news-image {
+        height: 220px;
+    }
+    
+    /* Better form input spacing */
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    /* Fix for contact form on small screens */
+    .contact-form-container {
+        padding: 15px;
+    }
+    
+    /* Optimize section spacing */
+    .section-divider {
+        margin: 40px 0 30px;
+    }
+    
+    /* Better support for Greek text which is often longer */
+    html[lang="el"] .read-more {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+    
+    /* Further reduce email size for very small screens */
+    .info-item.email-item p {
+        font-size: 10px;
+        max-width: 150px;
+    }
+    
+    /* Ensure email addresses fit on one line on mobile devices */
+    .info-item p {
+        word-break: break-word;
+        font-size: 14px;
+    }
+    
+    .contact-box p {
+        word-break: break-word;
+        font-size: 13px;
+    }
+}
+
+/* Very small mobile devices */
+@media (max-width: 360px) {
+    /* Special handling for tiny screens */
+    .nav-links {
+        padding: 3px 10px 3px 0.
+    }
+    
+    /* Extreme space optimization */
+    .nav-links .logo-img {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .company-title {
+        font-size: 15px;
+    }
+    
+    .company-subtitle {
+        font-size: 6px;
+    }
+    
+    /* Better news card layout on tiny screens */
+    .news-content {
+        padding: 12px;
+    }
+    
+    .news-content h3 {
+        font-size: 1.1rem;
+    }
+    
+    .news-date {
+        font-size: 0.75rem;
+    }
+    
+    .read-more {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+    }
+    
+    /* Fix for section divider text */
+    .section-divider::after {
+        font-size: 0.9rem;
+        padding: 3px 10px;
+    }
+    
+    /* More compact member cards */
+    .member-card {
+        width: 200px !important;
+        height: 200px !important;
+    }
+    
+    /* Tiny flags for very small screens */
+    .nav-links .flag {
+        width: 20px !important;
+    }
+}
+
+/* Mobile hamburger menu */
+.mobile-menu-btn {
+    display: none;
+    cursor: pointer;
+    background: rgba(25, 33, 80, 0.8);
+    border: 1px solid rgba(179, 229, 252, 0.5);
+    border-radius: 4px;
+    font-size: 18px;
+    color: #fff;
+    position: fixed;
+    right: 10px;
+    top: 10px;
+    z-index: 1010;
+    padding: 5px 8px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    opacity: 0.8;
+}
+
+.mobile-menu-btn:hover, .mobile-menu-btn:focus {
+    opacity: 1;
+    outline: none;
+}
+
+/* Add this class to toggle the mobile nav visibility */
+/* Note: Default display value from top_bar.css will be used when not mobile */
+
+.nav-items.mobile-active {
+    display: flex !important;
+}
+
+/* Greek mobile version - center the cards and make text white */
+html[lang="el"] .nav-items li {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding-right: 20px; /* Add padding to the right to shift content left */
+}
+
+html[lang="el"] .nav-items li a {
+    color: #ffffff !important;
+    margin: 0 auto;
+    text-align: center;
+    width: 60%;
+    transform: translateX(-10px); /* Move items 10px to the left */
+}
+
+html[lang="el"] .nav-items.mobile-active li a {
+    color: #ffffff !important;
+}
+
+/* PC Version Override - Restore original top bar styling */
+@media (min-width: 993px) {
+    /* Reset the navigation links to original styling */
+    .nav-links {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        background: transparent;
+        border-radius: 0 0;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        padding: 10px 20px;
+        height: 90px;
+        overflow: hidden;
+    }
+    
+    /* Logo and company name positioning */
+    .nav-links .logo {
+        display: flex;
+        align-items: center;
+        margin-right: 30px;
+        margin-left: 0;
+    }
+    
+    .nav-links .logo-img {
+        width: 85px;
+        height: 85px;
+        margin-right: 15px;
+        cursor: pointer;
+    }
+    
+    /* Company name styling - updated for more stylish appearance with centered title */
+    .nav-links .company-name {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 240px;
+        margin-right: 20px;
+    }
+    
+    .company-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: #35207e;
+        line-height: 1;
+        margin: 0;
+        letter-spacing: 0.5px;
+        text-align: center;
+    }
+    
+    .company-subtitle {
+        font-family: 'Poppins', sans-serif;
+        font-size: 12px;
+        font-weight: 400;
+        color: #35207e;
+        margin-top: 4px;
+        line-height: 1;
+        text-align: center;
+    }
+    
+    /* Navigation link styling - move them more to the right */
+    .nav-links .nav-items {
+        display: flex !important; /* Ensure visibility */
+        flex-direction: row !important; /* Force horizontal layout */
+        margin-left: 10px;
+        position: static !important; /* Reset position */
+        background-color: transparent !important; /* Reset background */
+        height: auto !important; /* Reset height */
+        padding: 0 !important; /* Reset padding */
+        box-shadow: none !important; /* Reset shadow */
+        width: auto !important; /* Reset width */
+    }
+    
+    .nav-links li {
+        list-style: none;
+        margin: 0 12px !important;
+        width: auto !important; /* Reset width */
+    }
+    
+    .nav-links li a {
+        position: relative;
+        color: black !important; /* Reset color to default */
+        font-size: 20px !important;
+        font-weight: 500;
+        padding: 6px 0;
+        text-decoration: none;
+        transition: color 0.4s ease;
+        width: auto !important; /* Reset width */
+        text-align: left !important; /* Reset text align */
+        display: inline-block !important; /* Reset display */
+    }
+    
+    /* Join Us button styling for PC */
+    .nav-links .join-button {
+        color: white !important;
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        padding: 8px 16px !important;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, #34efdf, #2c8aff) !important;
+        border-radius: 30px !important;
+        box-shadow: 0 4px 15px rgba(52, 239, 223, 0.3) !important;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        display: inline-block !important;
+        margin-top: 4px !important;
+        line-height: 1.2;
+        border: none;
+        cursor: pointer;
+        vertical-align: middle;
+        width: auto !important;
+    }
+    
+    .nav-links .join-button:hover {
+        background: linear-gradient(135deg, #2c8aff, #34efdf) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(52, 239, 223, 0.5) !important;
+    }
+    
+    /* Position the flags inside the white circle */
+    .nav-links .flags {
+        display: flex !important;
+        flex-direction: column !important; /* Vertical in PC mode */
+        align-items: center !important;
+        margin-left: auto !important;
+        position: absolute !important;
+        right: 40px !important;
+        top: 15px !important;
+        margin: 0 !important;
+    }
+    
+    .nav-links .flag {
+        width: 30px !important;
+        height: auto !important;
+        margin: 3px 20px !important;
+        cursor: pointer !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Greek styles for PC */ 
+    html[lang="el"] .nav-links .logo {
+        margin-left: 10px;
+    }
+    
+    html[lang="el"] .nav-links .company-name {
+        margin-right: 50px;
+    }
+    
+    html[lang="el"] .nav-links li {
+        margin: 0 20px;
+    }
+    
+    /* Update Greek PC version text to be white */
+    html[lang="el"] .nav-links li a {
+        color: #ffffff !important; /* Make text white in Greek PC version */
+        transform: none !important; /* Remove the left shift for PC */
+        width: auto !important; /* Reset width */
+        margin: 0 !important; /* Reset margin */
+        text-align: left !important; /* Reset text alignment */
+    }
+    
+    /* Fix duplicate flags issue for Greek version */
+    html[lang="el"] .mobile-flags {
+        display: none !important; /* Hide mobile flags in PC version */
+    }
+    
+    /* Ensure the PC flags are visible and properly positioned */
+    html[lang="el"] .flags {
+        display: flex !important;
+        position: absolute !important;
+        right: 40px !important;
+        top: 15px !important;
+    }
+}
+
+/* Print styles for better printing support */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .space-background, .nav-links, .footer, .mobile-menu-btn {
+        display: none !important;
+    }
+    
+    .container {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    a {
+        text-decoration: underline;
+        color: #000 !important;
+    }
+    
+    img {
+        max-width: 100%;
+        page-break-inside: avoid;
+    }
+    
+    h1, h2, h3, h4 {
+        page-break-after: avoid;
+    }
+    
+    p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+    }
+}

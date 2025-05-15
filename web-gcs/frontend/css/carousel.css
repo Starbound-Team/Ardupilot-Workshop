@@ -1,0 +1,201 @@
+/* Carousel Styling */
+.carousel-container {
+    max-width: 1200px;
+    margin: 120px auto 50px;
+    padding: 5px 20px;
+}
+
+.carousel-title {
+    text-align: center;
+    margin-bottom: 60px;
+    margin-top: 80px;
+    position: relative;
+}
+
+.carousel-title h2 {
+    color: #333;
+    font-weight: 700;
+    font-size: 36px;
+}
+
+.title-underline {
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(to right, #03a9f4, #34efdf);
+    margin: 0 auto;
+    border-radius: 2px;
+}
+
+.carousel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    padding: 30px;
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s ease;
+    width: 300%; /* For 3 slides */
+}
+
+.carousel-slide {
+    width: 33.333%; /* For 3 slides */
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.project-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.project-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.card-image {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.project-card:hover .card-image img {
+    transform: scale(1.1);
+}
+
+.card-content {
+    padding: 25px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-content h3 {
+    font-size: 22px;
+    margin-bottom: 15px;
+    color: #333;
+    font-weight: 600;
+}
+
+.card-content p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #666;
+    margin-bottom: 20px;
+    flex-grow: 1;
+}
+
+.read-more {
+    display: inline-block;
+    padding: 8px 20px;
+    background: linear-gradient(to right, #03a9f4, #34efdf);
+    color: white;
+    text-decoration: none;
+    border-radius: 50px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    align-self: flex-start;
+    box-shadow: 0 4px 10px rgba(3, 169, 244, 0.2);
+}
+
+.read-more:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(3, 169, 244, 0.3);
+}
+
+/* Navigation Dots */
+.carousel-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.nav-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #dddddd;
+    margin: 0 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-dot:hover {
+    background-color: #bbbbbb;
+}
+
+.nav-dot.active {
+    background-color: #03a9f4;
+    transform: scale(1.2);
+    box-shadow: 0 0 10px rgba(3, 169, 244, 0.5);
+}
+
+/* Responsive Styling */
+@media (max-width: 992px) {
+    .carousel-container {
+        margin-top: 100px;
+    }
+    
+    .carousel-title h2 {
+        font-size: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .carousel-container {
+        margin-top: 80px;
+    }
+    
+    .carousel {
+        padding: 20px;
+    }
+    
+    .card-image {
+        height: 180px;
+    }
+    
+    .card-content {
+        padding: 20px;
+    }
+    
+    .card-content h3 {
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .carousel-title h2 {
+        font-size: 26px;
+    }
+    
+    .card-image {
+        height: 160px;
+    }
+    
+    .card-content h3 {
+        font-size: 18px;
+    }
+    
+    .card-content p {
+        font-size: 14px;
+    }
+}

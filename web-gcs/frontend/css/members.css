@@ -1,0 +1,508 @@
+/* Members Page Styling */
+html {
+    height: 100%;
+}
+
+body {
+    /* Add padding to account for the fixed navigation bar - increased for more space */
+    margin: calc(100vh - 75vh) 0 0;  /* Changed from 80vh to 75vh to create a 25vh (25%) top margin */
+    min-height: 100%;
+    /* Updated to match the home page gradient */
+    background: linear-gradient(135deg, #1c2331 0%, #0c1016 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    background-attachment: fixed;
+    position: relative;
+    overflow-x: hidden;  /* Prevent horizontal scrollbars */
+}
+
+/* Add animation for subtle gradient movement */
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Cosmic background container styling */
+#cosmic-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;  /* Behind all content */
+    pointer-events: none;  /* Don't interfere with clicks */
+}
+
+/* Cosmic star styling */
+.cosmic-star {
+    position: absolute;
+    background-color: white;
+    border-radius: 50%;
+    animation: starTwinkle 3s infinite ease-in-out, starFloat 7s infinite ease-in-out;
+    pointer-events: none;
+}
+
+/* Star animation keyframes */
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.9; }
+}
+
+@keyframes starFloat {
+    0% { transform: translateY(0) translateX(0); }
+    25% { transform: translateY(-3px) translateX(1px); }
+    50% { transform: translateY(-1px) translateX(3px); }
+    75% { transform: translateY(2px) translateX(-1px); }
+    100% { transform: translateY(0) translateX(0); }
+}
+
+/* Add stars to the entire page background */
+body:before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 800 800'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Ccircle r='1.5' cx='50' cy='50'/%3E%3Ccircle r='1.2' cx='100' cy='150'/%3E%3Ccircle r='1' cx='170' cy='90'/%3E%3Ccircle r='1.8' cx='230' cy='190'/%3E%3Ccircle r='1' cx='270' cy='130'/%3E%3Ccircle r='0.8' cx='330' cy='215'/%3E%3Ccircle r='1.5' cx='390' cy='120'/%3E%3Ccircle r='1.2' cx='460' cy='220'/%3E%3Ccircle r='1' cx='500' cy='90'/%3E%3Ccircle r='0.7' cx='570' cy='210'/%3E%3Ccircle r='1.3' cx='620' cy='120'/%3E%3Ccircle r='1' cx='680' cy='190'/%3E%3Ccircle r='1.2' cx='740' cy='100'/%3E%3Ccircle r='1.4' cx='150' cy='250'/%3E%3Ccircle r='1.1' cx='210' cy='320'/%3E%3Ccircle r='1.6' cx='280' cy='270'/%3E%3Ccircle r='0.9' cx='350' cy='350'/%3E%3Ccircle r='1.7' cx='420' cy='280'/%3E%3Ccircle r='1' cx='480' cy='340'/%3E%3Ccircle r='1.3' cx='550' cy='300'/%3E%3Ccircle r='1' cx='630' cy='355'/%3E%3Ccircle r='1.5' cx='700' cy='290'/%3E%3C/g%3E%3C/svg%3E");
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Add orbital ring to the entire page */
+body:after {
+    content: "";
+    position: fixed;
+    top: 35%;
+    left: -10%;
+    width: 120%;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.05);
+    transform: rotate(-3deg);
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Replace the planet with StarBound logo */
+.members-container:before {
+    content: "";
+    position: fixed;
+    bottom: 10%;
+    right: 5%;
+    width: 180px;
+    height: 180px;
+    background: url('../Icons/starbound_team_logo_bg.svg') no-repeat center center;
+    background-size: contain;
+    opacity: 0.6;
+    z-index: -1;
+    pointer-events: none;
+    animation: gentle-float 8s ease-in-out infinite;
+}
+
+/* Add floating animation for the logo */
+@keyframes gentle-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+}
+
+/* Since we have a space background now, let's make text/content stand out better */
+.members-container {
+    max-width: 1200px;
+    margin: 60px auto 0;  /* Increased from 30px to 60px for additional top margin */
+    padding: 40px 20px;
+    min-height: 100vh;
+}
+
+.members-title {
+    text-align: center;
+    font-size: 48px;
+    margin-top: 20px; /* Added new top margin to the title itself */
+    margin-bottom: 45px;
+    color: #ffffff;
+    position: relative;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    /* Updated to lighter blue-teal gradient */
+    background: linear-gradient(90deg, #40c9ff, #34d7eb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.members-title:after {
+    display: none; /* Hide the underline */
+}
+
+.team-section {
+    margin-bottom: 60px;
+    /* Updated to match mission-feature from home page */
+    background: rgba(22, 22, 40, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(71, 118, 230, 0.2);
+    transition: all 0.3s ease;
+}
+
+.team-section:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border-color: rgba(142, 84, 233, 0.5);
+}
+
+.section-title {
+    font-size: 32px;
+    margin-bottom: 30px;
+    padding-left: 20px;
+    position: relative;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.section-title:before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 30px;
+    border-radius: 3px;
+    /* Each team will have its own color defined below */
+}
+
+/* Now we can remove the aerospace header since the whole page has the theme */
+.aerospace-header {
+    display: none;
+}
+
+/* Members Page Styling */
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));  /* Adjusted for circular cards */
+    gap: 40px;  /* Increased gap */
+    margin-bottom: 40px;
+}
+
+.member-card {
+    background: transparent;
+    overflow: visible;
+    box-shadow: none;
+    transition: all 0.3s ease;
+    text-align: center;
+    position: relative;
+    width: 220px; /* Increased width for better text display */
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 280px; /* Added minimum height to ensure consistent spacing */
+}
+
+.member-card:hover {
+    transform: translateY(-5px);
+}
+
+.member-photo-container {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%; /* This makes the photo container circular */
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    margin: 0 auto; /* Center the photo container */
+    /* Team-specific border will be applied via the border properties from team classes */
+}
+
+.member-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: relative;
+}
+
+.member-details {
+    width: 100%;
+    margin-top: 15px;
+    padding: 0 5px; /* Added padding to prevent text from extending beyond card */
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 60px; /* Ensure consistent space for text */
+}
+
+.member-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px; /* Increased from 5px for better spacing */
+    color: #ffffff;
+    max-width: 100%; /* Ensure text doesn't overflow */
+    word-wrap: break-word; /* Ensures long names wrap properly */
+    line-height: 1.3; /* Improved line height for better readability */
+    overflow: visible; /* Allow text to be fully visible */
+    white-space: normal; /* Allow wrapping */
+}
+
+.member-role {
+    font-size: 14px;
+    color: #d9d9d9;
+    font-style: italic;
+    max-width: 100%; /* Ensure text doesn't overflow */
+    word-wrap: break-word; /* Ensures long roles wrap properly */
+    line-height: 1.3; /* Improved line height for better readability */
+    overflow: visible; /* Allow text to be fully visible */
+    white-space: normal; /* Allow wrapping */
+}
+
+.member-info {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(22, 22, 40, 0.85);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.member-card:hover .member-info {
+    opacity: 1;
+}
+
+.member-social {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.member-social a {
+    color: #ffffff;
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.member-social a:hover {
+    transform: scale(1.2);
+}
+
+.member-social .linkedin:hover {
+    color: #ffffff;
+    background: #0077b5;
+}
+
+.member-social .github:hover {
+    color: #ffffff;
+    background: #333;
+}
+
+.member-social .gmail:hover {
+    color: #ffffff;
+    background: #ea4335;
+}
+
+/* Board styling - Royal purple for leadership */
+.board .member-photo-container {
+    border: 2px solid #5e17eb;
+    box-shadow: 0 10px 20px rgba(94, 23, 235, 0.2);
+}
+
+.board .member-card:hover .member-photo-container {
+    box-shadow: 0 15px 30px rgba(94, 23, 235, 0.3);
+}
+
+.board .member-name {
+    color: #9370DB;
+}
+
+.board .section-title:before {
+    background: linear-gradient(to bottom, #9370DB, #5e17eb);
+}
+
+/* Software & Embedded Systems styling - Tech blue */
+.software .member-photo-container {
+    border: 2px solid #0077cc;
+    box-shadow: 0 10px 20px rgba(0, 119, 204, 0.2);
+}
+
+.software .member-card:hover .member-photo-container {
+    box-shadow: 0 15px 30px rgba(0, 119, 204, 0.3);
+}
+
+.software .member-name {
+    color: #0077cc;
+}
+
+.software .section-title:before {
+    background: linear-gradient(to bottom, #2196F3, #0077cc);
+}
+
+/* Electrical styling - Electric yellow/amber */
+.electrical .member-photo-container {
+    border: 2px solid #ffab00;
+    box-shadow: 0 10px 20px rgba(255, 171, 0, 0.2);
+}
+
+.electrical .member-card:hover .member-photo-container {
+    box-shadow: 0 15px 30px rgba(255, 171, 0, 0.3);
+}
+
+.electrical .member-name {
+    color: #d97706;
+}
+
+.electrical .section-title:before {
+    background: linear-gradient(to bottom, #ffc107, #ffab00);
+}
+
+/* Mechanical styling - Steel gray */
+.mechanical .member-photo-container {
+    border: 2px solid #546e7a;
+    box-shadow: 0 10px 20px rgba(84, 110, 122, 0.2);
+}
+
+.mechanical .member-card:hover .member-photo-container {
+    box-shadow: 0 15px 30px rgba(84, 110, 122, 0.3);
+}
+
+.mechanical .member-name {
+    color: #455a64;
+}
+
+.mechanical .section-title:before {
+    background: linear-gradient(to bottom, #78909c, #546e7a);
+}
+
+/* Finance styling - Money green */
+.finance .member-photo-container {
+    border: 2px solid #2e7d32;
+    box-shadow: 0 10px 20px rgba(46, 125, 50, 0.2);
+}
+
+.finance .member-card:hover .member-photo-container {
+    box-shadow: 0 15px 30px rgba(46, 125, 50, 0.3);
+}
+
+.finance .member-name {
+    color: #2e7d32;
+}
+
+.finance .section-title:before {
+    background: linear-gradient(to bottom, #4caf50, #2e7d32);
+}
+
+/* Marketing styling - Creative orange */
+.marketing .member-photo-container {
+    border: 2px solid #e65100;
+    box-shadow: 0 10px 20px rgba(230, 81, 0, 0.2);
+}
+
+.marketing .member-card:hover .member-photo-container {
+    box-shadow: 0 15px 30px rgba(230, 81, 0, 0.3);
+}
+
+.marketing .member-name {
+    color: #e65100;
+}
+
+.marketing .section-title:before {
+    background: linear-gradient(to bottom, #ff9800, #e65100);
+}
+
+/* Activities styling - Vibrant pink */
+.activities .member-photo-container {
+    border: 2px solid #c2185b;
+    box-shadow: 0 10px 20px rgba(194, 24, 91, 0.2);
+}
+
+.activities .member-card:hover .member-photo-container {
+    box-shadow: 0 15px 30px rgba(194, 24, 91, 0.3);
+}
+
+.activities .member-name {
+    color: #c2185b;
+}
+
+.activities .section-title:before {
+    background: linear-gradient(to bottom, #e91e63, #c2185b);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .members-title {
+        font-size: 36px;
+    }
+    
+    .section-title {
+        font-size: 24px;
+    }
+    
+    /* Switch from grid to flexbox for better control on mobile */
+    .members-grid {
+        display: flex;
+        flex-wrap: wrap; /* Allow multiple members per row if space allows */
+        justify-content: center; /* Center items horizontally */
+        gap: 30px;
+    }
+    
+    .member-card {
+        width: 200px; /* Maintain good width for mobile */
+        margin-bottom: 30px; /* Increased bottom margin to prevent overlap */
+    }
+    
+    .member-photo-container {
+        width: 150px; /* Smaller photos on mobile */
+        height: 150px;
+    }
+    
+    .member-details {
+        min-height: 70px; /* Slightly more space on mobile for text */
+    }
+}
+
+@media (min-width: 481px) and (max-width: 896px) {
+    /* Maximum width constraint for the members grid to prevent any chance of overlap */
+    .members-grid {
+        max-width: 300px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .members-title {
+        font-size: 28px;
+    }
+    
+    .section-title {
+        font-size: 20px;
+    }
+    
+    .member-card {
+        width: 170px; /* Adjusted width for smaller screens */
+    }
+    
+    .member-photo-container {
+        width: 130px; /* Smaller photos on small mobile */
+        height: 130px;
+    }
+}

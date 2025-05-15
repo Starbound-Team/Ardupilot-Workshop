@@ -1,0 +1,460 @@
+/* Supporters Page Styling */
+html, body {
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.main-content, .content, main {
+    min-height: 100vh;
+    /* Ensures content always fills viewport height */
+}
+
+body {
+    /* Remove top margin whitespace and ensure background covers the entire page */
+    margin: 0;
+    min-height: 100%;
+    /* Updated to match home page gradient */
+    background: linear-gradient(135deg, #1c2331 0%, #0c1016 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    position: relative;  /* For positioning stars */
+    overflow-x: hidden;  /* Prevent horizontal scrollbars */
+    overflow-y: auto;
+}
+
+#cosmic-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;  /* Behind all content */
+    pointer-events: none;  /* Don't interfere with clicks */
+}
+
+.cosmic-star {
+    position: absolute;
+    background-color: white;
+    border-radius: 50%;
+    animation: starTwinkle 3s infinite ease-in-out, starFloat 7s infinite ease-in-out;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Simple animation for the background */
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Keep the same star animations */
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.9; }
+}
+
+@keyframes starFloat {
+    0% { transform: translateY(0) translateX(0); }
+    25% { transform: translateY(-3px) translateX(1px); }
+    50% { transform: translateY(-1px) translateX(3px); }
+    75% { transform: translateY(2px) translateX(-1px); }
+    100% { transform: translateY(0) translateX(0); }
+}
+
+.supporters-container {
+    max-width: 1200px;
+    /* Reduce top margin to minimize whitespace */
+    margin: 0 auto;
+    padding: 40px 20px;
+    min-height: 100vh;
+    /* Add top padding to account for the navigation bar */
+    padding-top: 100px;
+}
+
+/* Updated title styling to match lighter blue-teal gradient */
+.supporters-title {
+    text-align: center;
+    font-size: 48px;
+    margin-bottom: 45px;
+    color: #ffffff;
+    position: relative;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    /* Changed to lighter gradient text effect */
+    background: linear-gradient(90deg, #40c9ff, #34d7eb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.supporters-title:after {
+    display: none; /* Hide the underline by setting display to none */
+}
+
+.supporters-category h2:before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    top: auto;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 3px;
+    border-radius: 0;
+    /* Color will be specified in each tier's styling */
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Galaxy level - purple underline matching text */
+.supporters-category:nth-child(2) h2 {
+    color: #8E54E9; /* Purple color for Galaxy tier */
+    text-shadow: 0 0 8px rgba(142, 84, 233, 0.5);
+}
+
+.supporters-category:nth-child(2) h2:before {
+    background: #8E54E9; /* Purple underline matching header text */
+    box-shadow: 0 0 10px rgba(142, 84, 233, 0.3);
+}
+
+/* Gold level - gold underline matching text */
+.supporters-category:nth-child(3) h2 {
+    color: #FFD700; /* Gold color for Gold tier */
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.supporters-category:nth-child(3) h2:before {
+    background: #FFD700; /* Gold underline matching header text */
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+/* Silver level - silver underline matching text */
+.supporters-category:nth-child(4) h2 {
+    color: #C0C0C0; /* Silver color for Silver tier */
+    text-shadow: 0 0 8px rgba(192, 192, 192, 0.5);
+}
+
+.supporters-category:nth-child(4) h2:before {
+    background: #C0C0C0; /* Silver underline matching header text */
+    box-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
+}
+
+/* Bronze level - bronze underline matching text */
+.supporters-category:nth-child(5) h2 {
+    color: #CD7F32; /* Bronze color for Bronze tier */
+    text-shadow: 0 0 8px rgba(205, 127, 50, 0.5);
+}
+
+.supporters-category:nth-child(5) h2:before {
+    background: #CD7F32; /* Bronze underline matching header text */
+    box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+}
+
+/* Collaborators level - green underline matching text */
+.supporters-category:nth-child(6) h2 {
+    color: #90EE90; /* Light green color for Collaborators tier */
+    text-shadow: 0 0 8px rgba(144, 238, 144, 0.5);
+}
+
+.supporters-category:nth-child(6) h2:before {
+    background: #90EE90; /* Green underline matching header text */
+    box-shadow: 0 0 10px rgba(144, 238, 144, 0.3);
+}
+
+.supporters-category {
+    margin-bottom: 60px;
+    /* Updated with blue color scheme */
+    background: rgba(22, 37, 80, 0.6); /* Darker blue background that fits space theme */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(64, 201, 255, 0.3); /* Subtle blue glow */
+    position: relative;
+    z-index: 1;
+    border: 1px solid rgba(71, 118, 230, 0.7); /* More pronounced blue border */
+    transition: all 0.3s ease;
+}
+
+.supporters-category:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 25px rgba(64, 201, 255, 0.4);
+    border-color: #40c9ff;
+}
+
+.supporters-category::before {
+    display: none;
+}
+
+/* General header styling with centered text and padding */
+.supporters-category h2 {
+    font-size: 32px;
+    margin-bottom: 30px;
+    padding-left: 0;
+    position: relative;
+    text-align: center;
+    padding-bottom: 15px;
+    /* Default white color will be overridden */
+    color: #ffffff; 
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.supporters-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+}
+
+.card {
+    background: #E3F2FD; /* Light blue background that matches the site's palette */
+    border-radius: 15px;
+    overflow: visible;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    width: 250px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    border: 2px solid #4776E6; /* Default blue border */
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(71, 118, 230, 0.25);
+    z-index: 5;
+    background: #BBDEFB; /* Slightly darker light blue on hover */
+}
+
+/* Galaxy level - blue theme */
+.supporters-category:nth-child(2) .card {
+    background: #E3F2FD; /* Light blue background */
+    border: 2px solid #4776E6; /* Medium blue border */
+    box-shadow: 0 10px 20px rgba(71, 118, 230, 0.3);
+}
+
+.supporters-category:nth-child(2) .card:hover {
+    background: #BBDEFB; /* Slightly darker light blue on hover */
+}
+
+.supporters-category:nth-child(3) .card {
+    background: #E3F2FD; /* Light blue background */
+    border: 2px solid #40c9ff; /* Bright blue border */
+    box-shadow: 0 10px 20px rgba(64, 201, 255, 0.3);
+}
+
+.supporters-category:nth-child(3) .card:hover {
+    background: #BBDEFB; /* Slightly darker light blue on hover */
+}
+
+.supporters-category:nth-child(4) .card {
+    background: #E3F2FD; /* Light blue background */
+    border: 2px solid #81D4FA; /* Light bright blue border */
+    box-shadow: 0 10px 20px rgba(129, 212, 250, 0.3);
+}
+
+.supporters-category:nth-child(4) .card:hover {
+    background: #BBDEFB; /* Slightly darker light blue on hover */
+}
+
+.supporters-category:nth-child(5) .card {
+    background: #E3F2FD; /* Light blue background */
+    border: 2px solid #29B6F6; /* Medium bright blue border */
+    box-shadow: 0 10px 20px rgba(41, 182, 246, 0.3);
+}
+
+.supporters-category:nth-child(5) .card:hover {
+    background: #BBDEFB; /* Slightly darker light blue on hover */
+}
+
+.supporters-category:nth-child(6) .card {
+    background: #E3F2FD; /* Light blue background */
+    border: 2px solid #03A9F4; /* Standard blue border */
+    box-shadow: 0 10px 20px rgba(3, 169, 244, 0.3);
+}
+
+.supporters-category:nth-child(6) .card:hover {
+    background: #BBDEFB; /* Slightly darker light blue on hover */
+}
+
+.card img {
+    /* max-width: 80%;   */
+    /* max-height: 80%;   */
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.card-overlay {
+    position: absolute;
+    top: -80px;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.card:hover .card-overlay {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Sponsor name styling in overlays */
+.sponsor-name {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Update card description to center the sponsor name */
+.card-description {
+    text-align: center;
+}
+
+/* Remove the margin bottom from card description p since we're now using h3 */
+.card-description p {
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    display: none; /* Hide the paragraph elements since we only want to show names */
+}
+
+/* Updated read-more button to match home page style by default */
+.read-more {
+    display: inline-block;
+    color: #4776E6;
+    font-weight: bold;
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.read-more:hover {
+    background: rgba(71, 118, 230, 0.2);
+    color: white;
+}
+
+/* Adding a star rating system for each supporter tier - preserved */
+.supporters-category:nth-child(2) .card:before {  /* Diamond tier */
+    display: none; /* Hide stars */
+}
+
+.supporters-category:nth-child(3) .card:before {  /* Platinum tier */
+    display: none; /* Hide stars */
+}
+
+.supporters-category:nth-child(4) .card:before {  /* Galaxy tier */
+    display: none; /* Hide stars */
+}
+
+.supporters-category:nth-child(5) .card:before {  /* Gold tier */
+    display: none; /* Hide stars */
+}
+
+.supporters-category:nth-child(6) .card:before {  /* Silver tier */
+    display: none; /* Hide stars */
+}
+
+.supporters-category:nth-child(7) .card:before {  /* Bronze tier */
+    display: none; /* Hide stars */
+}
+
+.supporters-category:nth-child(8) .card:before {  /* Collaborators tier */
+    display: none; /* Hide stars */
+}
+
+/* Add separate star elements to ensure they're visible */
+.cosmic-star {
+    position: absolute;
+    background-color: white;
+    border-radius: 50%;
+    animation: starTwinkle 3s infinite ease-in-out, starFloat 7s infinite ease-in-out;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Tablet clickable class */
+.tablet-clickable {
+    position: relative;
+    transform-origin: center;
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.tablet-clickable:active {
+    transform: scale(0.95);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .supporters-title {
+        font-size: 36px;
+    }
+    
+    .supporters-category h2 {
+        font-size: 24px;
+    }
+    
+    .card {
+        width: 200px;
+        height: 160px;
+        position: relative; /* Ensure positioning context for the link */
+    }
+    
+    /* Hide description overlays on mobile - new */
+    .card-overlay {
+        display: none;
+    }
+    
+    /* Make the card appear clickable */
+    .card {
+        cursor: pointer;
+    }
+}
+
+/* Tablet-specific adjustments (481px to 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .card {
+        width: 220px;
+        height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .supporters-title {
+        font-size: 28px;
+    }
+    
+    .supporters-category h2 {
+        font-size: 20px;
+    }
+    
+    .card {
+        width: 150px;
+        height: 120px;
+    }
+    
+    /* Hide description overlays on mobile - reinforced for smaller screens */
+    .card-overlay {
+        display: none;
+    }
+}

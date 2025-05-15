@@ -1,0 +1,729 @@
+/* Contact Page Styling - Updated to match home page color palette */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+    margin-top: 120px; /* Space for the fixed nav bar */
+    color: #fff;
+    /* Updated to match home page gradient */
+    background: linear-gradient(135deg, #1c2331 0%, #0c1016 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Animation for subtle gradient movement */
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Space Background Animation */
+.space-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+    min-height: 100vh;
+}
+
+.stars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('../Images/stars.png');
+    z-index: -3;
+}
+
+.twinkling {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('../Images/twinkling.png');
+    animation: twinkle 10s linear infinite;
+    z-index: -2;
+}
+
+@keyframes twinkle {
+    from { background-position: 0 0; }
+    to { background-position: 1000px 1000px; }
+}
+
+/* Updated planet colors to match home page gradient */
+.planet {
+    position: absolute;
+    bottom: -150px;
+    right: -150px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    /* Updated to match home page planet colors */
+    background: radial-gradient(circle at 30% 30%, #4776E6, #8E54E9);
+    box-shadow: 0 0 30px rgba(71, 118, 230, 0.6);
+    opacity: 0.6;
+}
+
+.satellite {
+    position: absolute;
+    top: 200px;
+    right: 150px;
+    width: 80px;
+    height: 30px;
+    background: linear-gradient(to bottom, #c7c7c7, #717171);
+    border-radius: 4px;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+    transform: rotate(-30deg);
+}
+
+.satellite:before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 35px;
+    width: 10px;
+    height: 60px;
+    background: linear-gradient(to right, #a0a0a0, #d9d9d9);
+    transform: rotate(0deg);
+}
+
+.satellite:after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    width: 60px;
+    height: 20px;
+    background: #444;
+    border-radius: 10px;
+}
+
+/* Updated comet styling */
+.comet {
+    position: absolute;
+    top: 15%;
+    right: 20%;
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: comet 15s linear infinite;
+    z-index: -1;
+}
+
+@keyframes comet {
+    0% { transform: translate(0, 0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translate(-500px, 300px); opacity: 0; }
+}
+
+/* Updated orbit line to match home page */
+.orbit-line {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+    width: 400px;
+    height: 400px;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    z-index: -1;
+}
+
+/* Mission Header Styling */
+.mission-header {
+    text-align: center;
+    margin-top: 60px; /* Added top margin similar to members page */
+    margin-bottom: 45px; /* Consistent with members page */
+}
+
+/* Updated with lighter blue-teal gradient text */
+.cosmic-title {
+    font-size: 48px;
+    margin-top: 20px; /* Added margin to the title text itself */
+    position: relative;
+    font-weight: 700;
+    /* Adding lighter gradient text effect */
+    background: linear-gradient(90deg, #40c9ff, #34d7eb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 15px rgba(52, 215, 235, 0.5);
+}
+
+/* Cosmic divider styling */
+.cosmic-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.divider-line {
+    height: 2px;
+    width: 100px;
+    /* Updated to match lighter gradient */
+    background: linear-gradient(90deg, rgba(64, 201, 255, 0.1), rgba(64, 201, 255, 0.8), rgba(64, 201, 255, 0.1));
+}
+
+.divider-icon {
+    margin: 0 15px;
+    color: #40c9ff;
+    font-size: 18px;
+}
+
+/* Hero Section with Contact Form and Map */
+.hero-section {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+}
+
+.contact-container {
+    width: 100%;
+    max-width: 1200px;
+    min-height: 100vh;
+}
+
+.form-map-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+/* Updated contact form styling to match home page cards */
+.contact-form-container {
+    /* Updated to match mission-feature from home page */
+    background: rgba(22, 22, 40, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(71, 118, 230, 0.2);
+    padding: 30px;
+    width: 450px; /* Fixed width for shape */
+    height: 450px; /* Fixed height for shape */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.contact-form-container:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(142, 84, 233, 0.5);
+}
+
+/* Control panel lights styling */
+.control-panel-lights {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.panel-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: blink 3s infinite alternate;
+}
+
+.panel-light.red { 
+    background-color: #ff4d4d; 
+    animation-delay: 0s;
+}
+
+.panel-light.yellow { 
+    background-color: #ffcc00; 
+    animation-delay: 0.5s;
+}
+
+.panel-light.green { 
+    background-color: #4caf50; 
+    animation-delay: 1s;
+}
+
+.panel-light.blue { 
+    background-color: #40c9ff; 
+    animation-delay: 0.3s;
+}
+
+.panel-light.purple { 
+    background-color: #8E54E9; 
+    animation-delay: 0.8s;
+}
+
+.panel-light.cyan { 
+    background-color: #34d7eb; 
+    animation-delay: 1.3s;
+}
+
+@keyframes blink {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+/* Updated contact form heading colors */
+.contact-form-container h1 {
+    color: #40c9ff;
+    text-align: center;
+    font-size: 28px;
+    margin: 0 0 5px 0;
+    text-shadow: 0 0 10px rgba(64, 201, 255, 0.5);
+}
+
+.subtitle {
+    color: #d9d9d9;
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+}
+
+/* Updated form styling */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #40c9ff;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-group i {
+    color: #40c9ff;
+}
+
+.form-group input, 
+.form-group textarea {
+    padding: 12px;
+    background: rgba(22, 22, 40, 0.8);
+    border: 1px solid rgba(71, 118, 230, 0.3);
+    border-radius: 8px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    color: #fff;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 8px rgba(64, 201, 255, 0.1);
+}
+
+.form-group input:focus, 
+.form-group textarea:focus {
+    outline: none;
+    border-color: #40c9ff;
+    box-shadow: 0 0 15px rgba(64, 201, 255, 0.3);
+}
+
+.form-group textarea {
+    resize: none;
+    height: 100px; /* Fixed height to maintain proportions */
+}
+
+.message-group {
+    flex-grow: 1;
+}
+
+.message-group textarea {
+    flex-grow: 1;
+    height: 100%;
+}
+
+/* Updated submit button to match home page gradient */
+.submit-btn {
+    background: linear-gradient(to right, #4776E6, #8E54E9);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 0 15px rgba(71, 118, 230, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.submit-btn:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: 0.5s;
+}
+
+.submit-btn:hover:before {
+    left: 100%;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(142, 84, 233, 0.6);
+}
+
+.submit-btn i {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.submit-btn:hover i {
+    transform: translateX(5px) translateY(-5px);
+}
+
+/* Updated map sidebar styling to match contact form */
+.map-sidebar {
+    /* Updated to match mission-feature from home page */
+    background: rgba(22, 22, 40, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 15px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(71, 118, 230, 0.2);
+    padding: 30px;
+    width: 450px; /* Fixed width for shape */
+    height: 450px; /* Fixed height for shape */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.map-sidebar:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(142, 84, 233, 0.5);
+}
+
+/* Updated map heading color */
+.map-sidebar h2 {
+    font-size: 22px;
+    margin-bottom: 15px;
+    color: #40c9ff;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(64, 201, 255, 0.5);
+}
+
+.map-container {
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    flex: 1; /* Take up remaining space */
+    border: 2px solid rgba(71, 118, 230, 0.4);
+    box-shadow: 0 0 15px rgba(71, 118, 230, 0.3);
+    position: relative;
+}
+
+.map-container:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(71, 118, 230, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.map-container iframe {
+    width: 100%;
+    height: 100%; /* Fill the container */
+    border: none;
+}
+
+/* Updated contact info styling */
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+    background: rgba(22, 22, 40, 0.8);
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid rgba(71, 118, 230, 0.2);
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.info-item i {
+    color: #40c9ff;
+    font-size: 16px;
+    width: 20px;
+    text-shadow: 0 0 5px rgba(64, 201, 255, 0.5);
+}
+
+.info-item p {
+    margin: 0;
+    font-size: 14px;
+    color: #d9d9d9;
+}
+
+/* Updated email styling for better mobile display */
+.info-item .email-text {
+    color: #d9d9d9;
+    margin: 0;
+    font-size: 14px;
+    word-break: normal;
+    overflow-wrap: break-word;
+    white-space: nowrap; /* Keep email on a single line */
+    width: 100%;
+    padding: 0;
+    font-family: 'Montserrat', sans-serif;
+    display: inline-block;
+}
+
+/* Updated social section styling */
+.social-section {
+    background-color: rgba(22, 22, 40, 0.8);
+    padding: 40px 20px;
+    text-align: center;
+    margin-top: 40px;
+    position: relative;
+    border-top: 1px solid rgba(71, 118, 230, 0.3);
+}
+
+.social-section:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(71, 118, 230, 0.5), transparent);
+}
+
+/* Updated section heading color */
+.social-section h3 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: #40c9ff;
+    text-shadow: 0 0 10px rgba(64, 201, 255, 0.4);
+}
+
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+}
+
+/* Updated social icon styling */
+.social-section .social-icon {
+    color: #d9d9d9;
+    font-size: 28px;
+    transition: all 0.3s ease;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(22, 22, 40, 0.6);
+    border: 1px solid rgba(71, 118, 230, 0.3);
+    position: relative;
+}
+
+.social-section .social-icon:after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, rgba(71, 118, 230, 0.4), transparent);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.social-section .social-icon:hover {
+    color: #40c9ff;
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(64, 201, 255, 0.4);
+    border-color: rgba(64, 201, 255, 0.6);
+}
+
+.social-section .social-icon:hover:after {
+    opacity: 1;
+}
+
+/* Responsive styles */
+@media (max-width: 980px) {
+    .contact-form-container,
+    .map-sidebar {
+        width: 400px;
+        height: 400px;
+    }
+    
+    /* Ensure email fits on smaller screens */
+    .info-item p {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    /* Specific styling for email display */
+    .info-item .email-text {
+        font-size: 14px;
+        max-width: 310px;
+        line-height: 1.4;
+    }
+}
+
+@media (max-width: 880px) {
+    .contact-form-container,
+    .map-sidebar {
+        width: 100%;
+        max-width: 450px;
+        height: auto;
+        min-height: 400px;
+    }
+    
+    .form-group textarea {
+        height: 100px;
+    }
+    
+    .satellite {
+        display: none;
+    }
+    
+    /* Improve email text appearance */
+    .info-item .email-text {
+        font-size: 13.5px;
+        letter-spacing: -0.2px;
+        padding: 4px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .contact-form-container h1 {
+        font-size: 24px;
+    }
+    
+    .planet {
+        opacity: 0.3;
+    }
+    
+    /* Make contact info more compact on mobile */
+    .contact-info {
+        padding: 12px;
+    }
+    
+    .info-item {
+        gap: 10px;
+        margin-bottom: 5px;
+        padding: 3px 0;
+    }
+    
+    .info-item i {
+        font-size: 14px;
+        min-width: 14px;
+        text-align: center;
+    }
+    
+    .info-item p {
+        font-size: 13px;
+    }
+    
+    /* Email specific styling for medium screens */
+    .info-item .email-text {
+        font-size: 13px;
+        padding: 4px 0;
+        max-width: 100%;
+        white-space: nowrap; /* Force single line */
+        overflow: visible;
+        word-break: keep-all;
+        line-height: 1.4;
+    }
+    
+    .cosmic-title {
+        font-size: 36px;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-form-container {
+        padding: 20px 15px;
+    }
+    
+    .contact-form-container h1 {
+        font-size: 22px;
+    }
+    
+    .map-sidebar h2 {
+        font-size: 20px;
+    }
+    
+    .social-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+    }
+    
+    /* Further adjustments for very small screens */
+    .info-item p {
+        font-size: 12px;
+    }
+    
+    /* Further improvements for very small screens */
+    .info-item .email-text {
+        font-size: 13px;
+        white-space: nowrap; /* Force single line */
+        letter-spacing: -0.2px; /* Slightly tighter letter spacing */
+        padding: 4px 0;
+    }
+    
+    .cosmic-title {
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 375px) {
+    /* Extra styling for very small screens */
+    .info-item .email-text {
+        font-size: 12px;
+        white-space: nowrap; /* Force single line */
+        letter-spacing: -0.3px; /* Even tighter letter spacing for very small screens */
+        line-height: 1.4;
+    }
+}

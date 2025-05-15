@@ -1,0 +1,283 @@
+/* Roadmap Section Styling */
+.roadmap-section {
+    padding: 60px 0 80px;
+    background: linear-gradient(to bottom, #121212, #1c2331);
+    color: #fff;
+}
+
+.roadmap-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.roadmap-title {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.roadmap-title h2 {
+    font-size: 2.5em;
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+.title-underline {
+    height: 4px;
+    width: 80px;
+    background: linear-gradient(90deg, #4776E6, #8E54E9);
+    margin: 0 auto;
+    border-radius: 2px;
+}
+
+/* Horizontal Timeline Styling */
+.timeline-wrapper {
+    position: relative;
+    overflow: hidden;
+    padding: 20px 0;
+}
+
+.timeline-scroll-indicator {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px;
+    color: rgba(142, 84, 233, 0.7);
+    animation: pulse 2s infinite;
+    pointer-events: none;
+    z-index: 5;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; transform: translateY(-50%) translateX(5px); }
+    100% { opacity: 0.5; }
+}
+
+.timeline {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: thin;
+    scrollbar-color: #4776E6 rgba(22, 22, 40, 0.3);
+    padding: 80px 0; /* Reduced padding as all items will now be below the line */
+    margin-bottom: 10px;
+    min-height: 320px; /* Reduced height since we're not alternating positions */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.timeline::-webkit-scrollbar {
+    height: 6px;
+}
+
+.timeline::-webkit-scrollbar-track {
+    background: rgba(22, 22, 40, 0.3);
+    border-radius: 10px;
+}
+
+.timeline::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #4776E6, #8E54E9);
+    border-radius: 10px;
+}
+
+/* Timeline line */
+.timeline::before {
+    content: '';
+    position: absolute;
+    width: 100%; /* Set to 100% width */
+    height: 4px;
+    background: linear-gradient(90deg, #4776E6, #8E54E9);
+    top: 60px; /* Position line at the top */
+    left: 0;
+    right: 0; /* Add right property to ensure full width */
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(142, 84, 233, 0.5);
+    z-index: 1;
+}
+
+/* Add a pseudo-element to create an extended line */
+.timeline::after {
+    content: '';
+    position: absolute;
+    width: 200%; /* Make this significantly larger to ensure coverage */ /* change this to match with the capacity of the events */
+    height: 4px;
+    background: linear-gradient(90deg, #4776E6, #8E54E9);
+    top: 60px; /* Same as the main line */
+    left: 100%; /* Start where the main line ends */
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(142, 84, 233, 0.5);
+    z-index: 1;
+}
+
+.timeline-item {
+    position: relative;
+    min-width: 300px;
+    width: 300px; /* Fixed width to prevent variable sizes */
+    margin-right: 150px; /* Spacing between items */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 60px; /* Same position for all items - below the line */
+}
+
+.timeline-item:last-child {
+    margin-right: 80px; /* Add some padding at the end for better scrolling */
+}
+
+/* Connection line from timeline to content */
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 60px; /* Height of connection line */
+    top: -60px; /* Connect to the timeline */
+    background: linear-gradient(to bottom, #4776E6, #8E54E9);
+    z-index: 2;
+    border-radius: 4px;
+}
+
+/* Connection dot */
+.timeline-item::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(45deg, #4776E6, #8E54E9);
+    border-radius: 50%;
+    top: -68px; /* Position on timeline */
+    z-index: 3;
+    box-shadow: 0 0 8px rgba(142, 84, 233, 0.8);
+}
+
+.timeline-content {
+    position: relative;
+    width: 100%;
+    padding: 25px 28px;
+    background: rgba(22, 22, 40, 0.8);
+    border: 1px solid rgba(71, 118, 230, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.timeline-content:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    background: rgba(35, 35, 55, 0.9);
+    border-color: rgba(142, 84, 233, 0.5);
+}
+
+/* Remove arrow styling entirely */
+.timeline-arrow {
+    display: none; /* Hide the arrows */
+}
+
+/* Content Styling */
+.timeline-content h3 {
+    margin-top: 0;
+    background: linear-gradient(90deg, #4776E6, #8E54E9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.6em;
+    color: #4776E6; /* Fallback */
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.timeline-content p {
+    margin-bottom: 0;
+    line-height: 1.6;
+    color: #d9d9d9;
+    font-size: 1em;
+}
+
+.timeline-date {
+    color: rgb(104, 128, 255);
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+/* Scroll prompt */
+.timeline-scroll-prompt {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #8a8a8a;
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .timeline {
+        padding: 70px 0;
+    }
+    
+    .timeline::before {
+        top: 50px;
+        width: 100%;
+        right: 0;
+    }
+    
+    .timeline::after {
+        top: 50px;
+        width: 800%; /* Increased from 300% to 1000% to ensure line extends much further */
+        background: linear-gradient(90deg, #4776E6, #8E54E9); /* Ensure consistent gradient */
+        box-shadow: 0 0 10px rgba(142, 84, 233, 0.5); /* Add consistent box shadow */
+    }
+
+    .timeline-item {
+        min-width: 260px;
+        width: 260px;
+        margin-right: 100px;
+        margin-top: 50px; /* Adjusted for mobile */
+    }
+    
+    /* Connection line for mobile */
+    .timeline-item::before {
+        height: 50px;
+        top: -50px;
+    }
+    
+    /* Connection dot for mobile */
+    .timeline-item::after {
+        top: -58px;
+        width: 14px;
+        height: 14px;
+    }
+    
+    .timeline-content {
+        padding: 18px 22px;
+    }
+    
+    .timeline-content h3 {
+        font-size: 1.3em;
+    }
+    
+    .timeline-date {
+        font-size: 1em;
+    }
+    
+    .timeline-arrow {
+        display: none; /* Hide the arrows */
+    }
+}
+
+/* iPad/Tablet specific adjustments */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .timeline::after {
+        width: 400%; /* Extend line for iPad/tablet screens */
+        background: linear-gradient(90deg, #4776E6, #8E54E9);
+        box-shadow: 0 0 10px rgba(142, 84, 233, 0.5);
+    }
+    
+    .timeline-item:last-child {
+        margin-right: 100px; /* Extra padding at the end for better scrolling on iPad */
+    }
+}

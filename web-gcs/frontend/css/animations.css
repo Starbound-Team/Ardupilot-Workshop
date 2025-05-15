@@ -1,0 +1,166 @@
+/* Scroll Animation Styles */
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition-delay: var(--animation-delay, 0s);
+}
+
+.animate-on-scroll.animate {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Fade in animation */
+.fade-in {
+    opacity: 0;
+    animation-fill-mode: forwards;
+}
+
+.fade-in.animate {
+    animation: fadeIn 0.8s ease forwards;
+    animation-delay: var(--animation-delay, 0s);
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Slide up animation */
+.slide-up {
+    opacity: 0;
+    transform: translateY(40px);
+    animation-fill-mode: forwards;
+}
+
+.slide-up.animate {
+    animation: slideUp 0.8s ease forwards;
+    animation-delay: var(--animation-delay, 0s);
+}
+
+@keyframes slideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide in from left animation */
+.slide-in-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    animation-fill-mode: forwards;
+}
+
+.slide-in-left.animate {
+    animation: slideInLeft 0.8s ease forwards;
+    animation-delay: var(--animation-delay, 0s);
+}
+
+@keyframes slideInLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Slide in from right animation */
+.slide-in-right {
+    opacity: 0;
+    transform: translateX(50px);
+    animation-fill-mode: forwards;
+}
+
+.slide-in-right.animate {
+    animation: slideInRight 0.8s ease forwards;
+    animation-delay: var(--animation-delay, 0s);
+}
+
+@keyframes slideInRight {
+    0% {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Zoom in animation */
+.zoom-in {
+    opacity: 0;
+    transform: scale(0.9);
+    animation-fill-mode: forwards;
+}
+
+.zoom-in.animate {
+    animation: zoomIn 0.8s ease forwards;
+    animation-delay: var(--animation-delay, 0s);
+}
+
+@keyframes zoomIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Section-specific animations */
+
+/* Carousel section */
+.carousel-title.animate-on-scroll {
+    transition-delay: 0.1s;
+}
+
+.project-card.animate-on-scroll {
+    transition-delay: var(--animation-delay, 0s);
+}
+
+/* Timeline section */
+.roadmap-title.animate-on-scroll {
+    transition-delay: 0.1s;
+}
+
+.timeline-item {
+    transition-delay: calc(var(--animation-delay) + 0.1s);
+}
+
+/* Calendar section */
+.calendar-title.animate-on-scroll {
+    transition-delay: 0.1s;
+}
+
+.calendar-nav.animate-on-scroll {
+    transition-delay: 0.2s;
+}
+
+.calendar-grid.animate-on-scroll {
+    transition-delay: 0.3s;
+}
+
+.events-list.animate-on-scroll {
+    transition-delay: 0.4s;
+}
+
+/* Footer animation */
+.footer-section.animate-on-scroll {
+    transition-delay: var(--animation-delay, 0s);
+}

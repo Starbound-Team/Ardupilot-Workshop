@@ -1,7 +1,9 @@
 # Ardupilot-Workshop
 This is our ardupilot workshop repository. Have fun!
 
-# Sitl instillation steps:
+# Sitl instillation steps (docker):
+
+# Sitl instillation steps (native):
 
 ***Clone the repository from the official ArduPilot github***
 ```bash

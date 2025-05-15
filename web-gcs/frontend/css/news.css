@@ -1,0 +1,512 @@
+html, body {
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    /* Remove top margin whitespace and ensure background covers the entire page */
+    margin: 0;
+    min-height: 100%;
+    /* Updated to a more blueish gradient */
+    background: linear-gradient(135deg, #1a2b4a 0%, #0a1629 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    position: relative;  /* For positioning stars */
+    overflow-x: hidden;  /* Prevent horizontal scrollbars */
+    overflow-y: auto;
+}
+
+/* Space background effect */
+.space-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.stars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background: url('../Images/stars.png');
+    z-index: -3;
+}
+
+.twinkling {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background: url('../Images/twinkling.png');
+    animation: twinkle 10s linear infinite;
+    z-index: -2;
+}
+
+/* Updated planet colors to match home page gradient */
+.planet {
+    position: absolute;
+    bottom: -100px;
+    right: -100px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #4776E6, #8E54E9);
+    box-shadow: 0 0 20px rgba(71, 118, 230, 0.8);
+    z-index: -1;
+}
+
+.satellite {
+    position: absolute;
+    top: 20%;
+    left: 10%;
+    width: 50px;
+    height: 20px;
+    background: linear-gradient(to right, #E1F5FE, #B3E5FC);
+    border-radius: 25px;
+    box-shadow: 0 0 10px rgba(179, 229, 252, 0.8);
+    animation: orbit 30s linear infinite;
+    z-index: -1;
+}
+
+.comet {
+    position: absolute;
+    top: 15%;
+    right: 20%;
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: comet 15s linear infinite;
+    z-index: -1;
+}
+
+.orbit-line {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+    width: 400px;
+    height: 400px;
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    z-index: -1;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes twinkle {
+    from { background-position: 0 0; }
+    to { background-position: 1000px 1000px; }
+}
+
+@keyframes orbit {
+    0% { transform: rotate(0deg) translateX(200px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(200px) rotate(-360deg); }
+}
+
+@keyframes comet {
+    0% { transform: translate(0, 0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translate(-500px, 300px); opacity: 0; }
+}
+
+/* Main content container */
+.container {
+    max-width: 1200px;
+    /* Remove top margin and use padding instead */
+    margin: 0 auto;
+    padding: 20px;
+    /* Using both the container padding and the spacer div to create separation */
+    padding-top: 120px; 
+    color: white;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+/* Updated title with lighter blue-teal gradient */
+.title {
+    font-size: 3rem;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    margin-bottom: 10px;
+    /* Adding lighter gradient text effect */
+    background: linear-gradient(90deg, #40c9ff, #34d7eb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #d9d9d9; /* Updated to match home page text color */
+    font-weight: 300;
+}
+
+.content-section {
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+}
+
+/* News grid styling */
+.news-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.news-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Updated column heading color to match home page gradient */
+.news-column h2 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #4776E6; /* Updated to match home page blue */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    padding-bottom: 5px;
+    border-bottom: 2px solid #4776E6;
+}
+
+/* Updated card styling to match mission-feature from home page */
+.news-card {
+    background: rgba(22, 22, 40, 0.6);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(71, 118, 230, 0.2);
+}
+
+.news-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    border-color: rgba(142, 84, 233, 0.5);
+}
+
+.news-image {
+    height: 200px;
+    overflow: hidden;
+}
+
+.news-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.news-card:hover .news-image img {
+    transform: scale(1.05);
+}
+
+.news-content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.news-content h3 {
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.news-date {
+    font-size: 0.85rem;
+    color: #d9d9d9; /* Updated to match home page text color */
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.news-content p {
+    margin-bottom: 20px;
+    flex-grow: 1;
+    color: #d9d9d9; /* Updated to match home page text color */
+}
+
+/* Updated read more button to match home page gradient */
+.read-more {
+    display: inline-block;
+    background: rgba(71, 118, 230, 0.2);
+    color: #4776E6;
+    padding: 8px 15px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    align-self: flex-start;
+}
+
+.read-more:hover {
+    background: rgba(142, 84, 233, 0.2);
+    transform: translateX(5px);
+    color: #8E54E9;
+}
+
+/* Make the first news item larger */
+.main-news {
+    grid-row: span 1;
+    grid-column: span 2; /* Make it span two columns instead of one */
+}
+
+.main-news .news-image {
+    height: 350px; /* Increased height from 250px */
+}
+
+.main-news .news-content h3 {
+    font-size: 1.8rem; /* Increased from 1.5rem */
+}
+
+.main-news .news-content p {
+    font-size: 1.1rem; /* Larger text for main news content */
+    line-height: 1.6;
+}
+
+.main-news .news-date {
+    font-size: 1rem; /* Larger date text */
+}
+
+.main-news .read-more {
+    font-size: 1.05rem; /* Larger read more button */
+    padding: 10px 20px; /* Larger padding */
+}
+
+/* News container */
+.news-container {
+    min-height: 100vh;
+}
+
+.main-content, .content, main {
+    min-height: 100vh;
+    /* Ensures content always fills viewport height */
+}
+
+/* Photo Wall Section */
+.photo-wall-section {
+    margin-top: 30px;
+}
+
+/* Fix for section divider text display - removing the forced English text */
+html[lang="el"] .section-divider::after {
+    /* Remove the forced "More News" text */
+    content: attr(data-text) !important; /* Use the data-text attribute which will be properly translated */
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #1a2b4a 0%, #0a1629 100%);
+    padding: 5px 20px;
+    color: #d9d9d9;
+    font-size: 1.2rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(71, 118, 230, 0.3);
+    z-index: 5; /* Ensure it appears above the background effect */
+}
+
+/* Improve section divider styling for all languages */
+.section-divider {
+    border-top: 2px solid rgba(71, 118, 230, 0.3);
+    margin: 60px 0 40px;
+    position: relative;
+}
+
+.section-divider::after {
+    content: attr(data-text);
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #1a2b4a 0%, #0a1629 100%);
+    padding: 5px 20px;
+    color: #d9d9d9;
+    font-size: 1.2rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(71, 118, 230, 0.3);
+    z-index: 5; /* Ensure it appears above the background effect */
+    white-space: nowrap; /* Prevent text from wrapping */
+}
+
+/* Updated heading color to match home page gradient */
+.photo-wall-section h2 {
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #4776E6;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Updated photo wall background to match home page cards */
+.photo-wall {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    background: rgba(22, 22, 40, 0.3);
+    border-radius: 10px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(71, 118, 230, 0.2);
+}
+
+.photo-item {
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.photo-item.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.photo-item:hover img {
+    transform: scale(1.1);
+}
+
+/* Category Circles - updated background but keeping distinct colors */
+.category-circles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.category-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(22, 22, 40, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(71, 118, 230, 0.2);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.category-circle:hover {
+    background: rgba(142, 84, 233, 0.2);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border-color: #8E54E9;
+}
+
+.circle-content {
+    font-size: 1.1rem;
+    padding: 10px;
+}
+
+/* Responsive Styles */
+@media screen and (max-width: 1024px) {
+    .news-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .main-news {
+        grid-column: span 2;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .news-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .main-news {
+        grid-column: span 1;
+    }
+    
+    .category-circles {
+        gap: 20px;
+    }
+    
+    .category-circle {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .title {
+        font-size: 2rem;
+    }
+    
+    .photo-wall {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .category-circle {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .circle-content {
+        font-size: 0.9rem;
+    }
+    
+    .section-divider::after {
+        font-size: 1rem; /* Slightly smaller text on mobile */
+        padding: 4px 15px; /* Slightly smaller padding */
+        white-space: nowrap; /* Ensure text doesn't wrap on small screens */
+        z-index: 10; /* Higher z-index to ensure it's on top */
+    }
+}
+
+/* Top spacer element */
+.top-spacer {
+    height: 70px; /* Creates additional space between navigation and content */
+    width: 100%;
+    display: block;
+    clear: both;
+}
