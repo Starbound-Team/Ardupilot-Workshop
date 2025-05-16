@@ -22,6 +22,48 @@ sudo systemctl enable docker
 sudo systemctl start docker
 ```
 
+**For Windows:**
+Install Docker Desktop: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+Install VcXsrv: [VcXsrv](https://sourceforge.net/projects/vcxsrv/)
+Configure VcXsrv to allow access from the Docker container:
+1. Start VcXsrv with the following options:
+   - Multiple windows
+   - Display number: 0
+   - Start no client
+   - Disable access control
+
+# Running the Docker image
+
+**Linux:**
+```bash
+xhost +
+docker run --rm -it  --net=host -e DISPLAY=$DISPLAY  -v /.X11-unix:/tmp/.X11-unix  -u "$(id -u):$(id -g)" manraf/ardupilot-sb:latest bash
+```
+
+**Windows:**
+
+CMD:
+```cmd
+docker run --rm -it ^
+  --net=host ^
+  -e DISPLAY=host.docker.internal:0.0 ^
+  -v /.X11-unix:/tmp/.X11-unix ^
+  -u "1000:1000" ^
+  manraf/ardupilot-sb:latest ^
+  bash
+```
+
+PowerShell/Terminal:
+```powershell
+docker run --rm -it `
+  --net=host `
+  -e DISPLAY="${ip}:0.0" `
+  -v /.X11-unix:/tmp/.X11-unix `
+  -u "1000:1000" `
+  manraf/ardupilot-sb:latest `
+  bash
+```
+
 # Sitl installation steps (native):
 
 ***Clone the repository from the official ArduPilot github***
