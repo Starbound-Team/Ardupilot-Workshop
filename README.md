@@ -1,9 +1,28 @@
 # Ardupilot-Workshop
 This is our ardupilot workshop repository. Have fun!
 
-# Sitl instillation steps (docker):
+# Sitl installation steps (docker):
 
-# Sitl instillation steps (native):
+**Official Docker installation guide:**
+Refer to the official Docker documentation for your distribution: [Docker Engine Install Guide](https://docs.docker.com/engine/install/)
+
+**Post-installation (all distributions):**
+To manage Docker as a non-root user, add your user to the docker group:
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+**For Arch-based distributions:**
+```bash
+yay -Syy docker
+sudo usermod -aG docker $USER
+newgrp docker
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+# Sitl installation steps (native):
 
 ***Clone the repository from the official ArduPilot github***
 ```bash
