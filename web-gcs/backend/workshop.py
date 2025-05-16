@@ -23,7 +23,7 @@ def get_distance_meters(a_location1, a_location2):
     dlat = a_location2.lat - a_location1.lat
     dlon = a_location2.lon - a_location1.lon
     return math.sqrt((dlat*dlat) + (dlon*dlon)) * 1.113195e5
-
+    
 def generate_circle_waypoints(center_lat, center_lon, altitude, radius=50, num_points=12):
     """Generates a list of LocationGlobalRelative waypoints for a circle."""
     waypoints = []
@@ -43,6 +43,9 @@ def generate_circle_waypoints(center_lat, center_lon, altitude, radius=50, num_p
             center_lon + dlon_deg,
             altitude
         ))
+
+    waypoints.append(waypoints[0])
+
     return waypoints
 
 #We will change the functions below this point
