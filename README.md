@@ -37,6 +37,11 @@ Configure VcXsrv to allow access from the Docker container:
    - Start no client
    - Disable access control
 
+2. Enable host networking in Docker Desktop:
+   - Open Docker Desktop settings
+   - Go to the "Resources" tab
+    - Select "Network"
+    - Enable "Host networking"
 ---
 
 # Running the Docker image
@@ -44,7 +49,7 @@ Configure VcXsrv to allow access from the Docker container:
 **Linux:**
 ```bash
 xhost +
-docker run --rm -it  --net=host -e DISPLAY=$DISPLAY  -v /.X11-unix:/tmp/.X11-unix  -u "$(id -u):$(id -g)" manraf/ardupilot-sb:latest bash
+docker run --rm -it --name ardupilot-sitl --net=host -e DISPLAY=$DISPLAY -v /.X11-unix:/tmp/.X11-unix -u "$(id -u):$(id -g)" manraf/ardupilot-sb:latest bash
 ```
 
 **Windows:**
@@ -52,6 +57,7 @@ docker run --rm -it  --net=host -e DISPLAY=$DISPLAY  -v /.X11-unix:/tmp/.X11-uni
 CMD:
 ```cmd
 docker run --rm -it ^
+  --name ardupilot-sitl ^
   --net=host ^
   -e DISPLAY=host.docker.internal:0.0 ^
   -v /.X11-unix:/tmp/.X11-unix ^
@@ -63,12 +69,18 @@ docker run --rm -it ^
 PowerShell/Terminal:
 ```powershell
 docker run --rm -it `
+  --name ardupilot-sitl `
   --net=host `
   -e DISPLAY="host.docker.internal:0.0" `
   -v /.X11-unix:/tmp/.X11-unix `
   -u "1000:1000" `
   manraf/ardupilot-sb:latest `
   bash
+```
+
+# Connecting to the Docker container
+```bash
+docker exec -it ardupilot-sitl bash
 ```
 
 # Sitl installation steps (native):
@@ -80,7 +92,7 @@ git clone https://github.com/ArduPilot/ardupilot.git --recurse-submodules
 
 ***Setup the virtual environment***
 
-*Navigate to the clone repositor, then Tools/environment_install, and execute the script that matches your distro*
+*Navigate to the clone repository, then Tools/environment_install, and execute the script that matches your distro*
 
 For example on ubuntu (and ubuntu-based distros):
 ```bash
@@ -89,7 +101,7 @@ bash install-prereqs-ubuntu.sh
 ```
 On arch
 ```bash
-bash install-prereques-arch.sh
+bash install-prereqs-arch.sh
 ```
 
 ***Configure the board and the vehicle type (Navigate to the initial directory first)***
@@ -106,4 +118,3 @@ cd Tools/autotest/
 python sim_vehicle.py -w -v copter --console --map
 ```
 To run subsequently, avoid the -w flag as it is not needed
-```
