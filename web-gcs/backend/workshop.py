@@ -72,7 +72,7 @@ def workshop_simple_mission(my_vehicle):
         #Set mode to guided here
 
         #Code below waits for mode change
-        #(we assume it failed after a certain time
+        #(we assume it failed after a certain time)
         start_time = time.time()
         while my_vehicle.mode.name != "GUIDED":
             if time.time() - start_time > 10:
