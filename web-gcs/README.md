@@ -2,7 +2,7 @@
 
 # Web-Based Ground Control Station (Web-GCS) for ArduPilot SITL 🛰️
 
-![StarBound Logo](./starbound_team_logo_bg.svg)
+![StarBound Logo](./starbound_team_logo.svg)
 **Developed with passion by StarBound – University of Thessaly Student Team, Volos, Greece.** 🇬🇷
 
 This project is a web-based application designed to act as a simple Ground Control Station (GCS) for controlling ArduPilot vehicles running in the Software-In-The-Loop (SITL) simulator. It provides a user-friendly interface accessible from a web browser to monitor telemetry and send basic commands locally.
