@@ -23,14 +23,21 @@ sudo systemctl start docker
 ```
 
 **For Windows:**
+
+---
+
 Install Docker Desktop: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
 Install VcXsrv: [VcXsrv](https://sourceforge.net/projects/vcxsrv/)
+
 Configure VcXsrv to allow access from the Docker container:
-1. Start VcXsrv with the following options:
+1. Start XLaunch with the following options:
    - Multiple windows
-   - Display number: 0
+   - Display number: -1
    - Start no client
    - Disable access control
+
+---
 
 # Running the Docker image
 
@@ -57,7 +64,7 @@ PowerShell/Terminal:
 ```powershell
 docker run --rm -it `
   --net=host `
-  -e DISPLAY="${ip}:0.0" `
+  -e DISPLAY="host.docker.internal:0.0" `
   -v /.X11-unix:/tmp/.X11-unix `
   -u "1000:1000" `
   manraf/ardupilot-sb:latest `
@@ -99,3 +106,4 @@ cd Tools/autotest/
 python sim_vehicle.py -w -v copter --console --map
 ```
 To run subsequently, avoid the -w flag as it is not needed
+```
