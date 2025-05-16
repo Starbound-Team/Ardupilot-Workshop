@@ -83,8 +83,8 @@ def workshop_simple_mission(my_vehicle):
     #if ...
         #raise Exception("Vehicle is not armed")
 
-    wp1 = LocationGlobalRelative(39.359523, 22.930260)
-    wp2 = LocationGlobalRelative(39.361381, 22.933684)
+    wp1 = LocationGlobalRelative(39.359523, 22.930260, 10)
+    wp2 = LocationGlobalRelative(39.361381, 22.933684, 10)
 
     waypoints = [wp1, wp2]
 
