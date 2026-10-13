@@ -35,7 +35,7 @@ newgrp docker
 
 **For Arch-based distributions:**
 ```bash
-yay -Syy docker
+sudo pacman -S docker
 sudo usermod -aG docker $USER
 newgrp docker
 sudo systemctl enable docker
@@ -43,8 +43,6 @@ sudo systemctl start docker
 ```
 
 **For Windows:**
-
----
 
 Install Docker Desktop: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
@@ -68,8 +66,8 @@ Configure VcXsrv to allow access from the Docker container:
 
 **Linux:**
 ```bash
-xhost +
-docker run --rm -it --name ardupilot-sitl --net=host -e DISPLAY=$DISPLAY -v /.X11-unix:/tmp/.X11-unix -u "$(id -u):$(id -g)" manraf/ardupilot-sb:latest bash
+xhost +local:
+docker run --rm -it --name ardupilot-sitl --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -u "$(id -u):$(id -g)" manraf/ardupilot-sb:latest bash
 ```
 
 **Windows:**
@@ -80,7 +78,6 @@ docker run --rm -it ^
   --name ardupilot-sitl ^
   --net=host ^
   -e DISPLAY=host.docker.internal:0.0 ^
-  -v /.X11-unix:/tmp/.X11-unix ^
   -u "1000:1000" ^
   manraf/ardupilot-sb:latest ^
   bash
@@ -92,7 +89,6 @@ docker run --rm -it `
   --name ardupilot-sitl `
   --net=host `
   -e DISPLAY="host.docker.internal:0.0" `
-  -v /.X11-unix:/tmp/.X11-unix `
   -u "1000:1000" `
   manraf/ardupilot-sb:latest `
   bash
@@ -117,7 +113,7 @@ git clone https://github.com/ArduPilot/ardupilot.git --recurse-submodules
 For example on ubuntu (and ubuntu-based distros):
 ```bash
 bash install-prereqs-ubuntu.sh
-. ~/profile
+. ~/.profile
 ```
 On arch
 ```bash
@@ -126,7 +122,7 @@ bash install-prereqs-arch.sh
 
 ***Configure the board and the vehicle type (Navigate to the initial directory first)***
 ```bash
-./waf configure --board CubeOrangePlus
+./waf configure --board sitl
 ./waf copter
 ```
 

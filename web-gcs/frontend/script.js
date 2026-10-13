@@ -2,6 +2,7 @@ const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
 const statusButton = document.getElementById('statusButton');
 const takeoffButton = document.getElementById('takeoffButton');
+const altitudeInput = document.getElementById('altitudeInput');
 // const statusDiv = document.getElementById('status');
 const telemetryDataPre = document.getElementById('telemetryData');
 
@@ -146,14 +147,20 @@ function sendGoToCommand(lat, lng) {
 }
 
 function sendTakeOff() {
+    const altitude = parseFloat(altitudeInput.value);
+    if (!(altitude > 0)) {
+        showToast("Takeoff altitude must be a positive number", "warning");
+        return;
+    }
+
     showToast("Sending takeoff command...", "info");
-    
+
     fetch(`${backendUrl}/api/takeoff`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({altitude: 10})
+        body: JSON.stringify({altitude})
     })
     .then(response => {
         // Always try to parse the JSON first, even for error responses
@@ -375,7 +382,7 @@ function setUIConnected(connected) {
         disconnectButton.hidden = false;
         fetchStatus(); // Fetch immediately
         if (!statusInterval) {
-            statusInterval = setInterval(fetchStatus, 100); // Poll every 2 seconds
+            statusInterval = setInterval(fetchStatus, 100); // Poll every 100 ms
         }
     } else {
         connectButton.hidden = false;
@@ -424,20 +431,27 @@ function setUIConnected(connected) {
 // --- API Call Functions ---
 async function connectToDrone() {
     //updateStatus('Attempting connection...');
+    showToast("Connecting to SITL (this can take up to a minute)...", "info", 5000);
+    connectButton.disabled = true;
     try {
         const response = await fetch(`${backendUrl}/api/connect`, { method: 'POST' });
         const data = await response.json();
 
         if (response.ok && data.status === 'success') {
+            showToast("Connected to SITL", "success");
             setUIConnected(true);
         } else {
             //updateStatus(`Connection Failed: ${data.message}`, true);
+            showToast(`Connection failed: ${data.message}`, "error");
             setUIConnected(false);
         }
     } catch (error) {
         console.error('Connection Error:', error);
         //updateStatus(`Connection Error: ${error.message}`, true);
+        showToast(`Connection error: ${error.message} (is the backend running?)`, "error");
         setUIConnected(false);
+    } finally {
+        connectButton.disabled = false;
     }
 }
 
@@ -459,8 +473,6 @@ function disconnectFromDrone() {
 }
 
 async function fetchStatus() {
-    console.log("SEEEND");
-
     try {
         const response = await fetch(`${backendUrl}/api/status`, { method: 'GET' });
         const result = await response.json();

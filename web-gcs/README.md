@@ -19,9 +19,10 @@ This project is a web-based application designed to act as a simple Ground Contr
     * Latitude, Longitude, Altitude
     * Airspeed, Groundspeed, Heading
     * Battery Voltage (if available)
-* **(In Progress/Planned):** Send basic MAVLink commands (Arm, Takeoff, RTL, Change Mode).
-* **(Planned):** Interactive map display (using Leaflet.js) showing vehicle position.
-* **(Planned):** Basic waypoint navigation (Click on map to set target, upload simple missions).
+* **Commands:** Takeoff (to the altitude in the input box) and Return to Launch.
+* **Interactive map** (Leaflet.js) showing the vehicle position and flight trail.
+* **Right-click map menu:** Go to a point, Return to home, and run the Simple / Circle workshop missions.
+* **Workshop exercises:** the takeoff and mission logic lives in `backend/workshop.py` and is filled in during the workshop.
 
 ## 💻 Tech Stack
 
@@ -47,8 +48,8 @@ Follow these steps to set up and run the Web-GCS project locally.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/MANRAF04/web-gcs.git
-cd web-gcs
+git clone https://github.com/starbound-team/ardupilot-workshop.git
+cd ardupilot-workshop/web-gcs
 ```
 
 ### 2. Setup Backend
@@ -81,20 +82,16 @@ Currently, the frontend consists of simple HTML, CSS, and JavaScript files. No b
 You need **three** separate terminal windows open to run the full system: one for SITL, one for the backend server, and one for the frontend server.
 
 1.  **Start ArduPilot SITL**
-    <!-- * Open a **new terminal**.
-    * Navigate to your ArduPilot directory (e.g., `~/ardupilot`).
-    * Launch SITL (adjust vehicle type with `-v` and other options as needed):
+    * Open a **new terminal** and start SITL, either inside the Docker container or from a native ArduPilot checkout (see the [main README](../README.md)):
 
         ```bash
-        # Example for Copter in ~/ardupilot directory
-        cd ~/ardupilot
-        sim_vehicle.py -v ArduCopter --map --console
-        ``` -->
+        sim_vehicle.py -v copter --console --map
+        ```
     * Wait for SITL to initialize completely (you should see GPS coordinates appearing). **Leave this terminal running.**
 
 2.  **Start the Backend Server**
     * Open a **second terminal**
-    * Navigate to the project's backend directory: `cd ~/web-gcs/backend`
+    * Navigate to the project's backend directory: `cd ardupilot-workshop/web-gcs/backend`
 
     * Activate the virtual environment: `source venv/bin/activate`
 
@@ -109,7 +106,7 @@ You need **three** separate terminal windows open to run the full system: one fo
 
     * Open a **third terminal.**
 
-    * Navigate to the project's frontend directory: `cd ~/web-gcs/frontend`
+    * Navigate to the project's frontend directory: `cd ardupilot-workshop/web-gcs/frontend`
 
     * Start Python's simple HTTP server to serve the HTML/JS/CSS files:
     ```bash
@@ -130,4 +127,6 @@ You need **three** separate terminal windows open to run the full system: one fo
 3.  Observe the **Status** section update. If successful, telemetry data should start appearing.
 4.  Use the **"Get Status"** button to manually refresh telemetry (it also polls automatically).
 5.  Use the **"Disconnect"** button to close the connection to the vehicle.
-6.  *(Command buttons like Arm, Takeoff, RTL will be added in future updates).*
+6.  Use **Takeoff** to arm and climb, then right-click the map for Go-to, RTL and the workshop missions.
+
+> **Note:** the backend runs in Flask debug mode, so it restarts automatically every time you save `workshop.py`. The restart drops the vehicle connection, so click **Connect** again after each edit.

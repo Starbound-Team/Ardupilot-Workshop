@@ -12,9 +12,9 @@ def get_distance_meters(a_location1, a_location2):
     earth's poles. It comes from the ArduPilot test code:
     https://github.com/diydrones/ardupilot/blob/master/Tools/autotest/common.py
     """
-    # Check if locations are valid LocationGlobalRelative objects with lat/lon
-    if not isinstance(a_location1, LocationGlobalRelative) or \
-       not isinstance(a_location2, LocationGlobalRelative) or \
+    # Check if locations are valid location objects with lat/lon
+    # (works with LocationGlobal and LocationGlobalRelative alike)
+    if a_location1 is None or a_location2 is None or \
        a_location1.lat is None or a_location1.lon is None or \
        a_location2.lat is None or a_location2.lon is None:
         logging.warning("Attempted to calculate distance with invalid location(s).")
