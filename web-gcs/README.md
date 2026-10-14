@@ -82,10 +82,15 @@ Currently, the frontend consists of simple HTML, CSS, and JavaScript files. No b
 You need **three** separate terminal windows open to run the full system: one for SITL, one for the backend server, and one for the frontend server.
 
 1.  **Start ArduPilot SITL**
-    * Open a **new terminal** and start SITL, either inside the Docker container or from a native ArduPilot checkout (see the [main README](../README.md)):
+    * Open a **new terminal** and start SITL, either inside the Docker container or from a native ArduPilot checkout (see the [main README](../README.md)). Both commands start the copter at the workshop field in Volos.
 
+        Docker:
         ```bash
-        sim_vehicle.py -v copter --console --map
+        /ardupilot/workshop/run.sh
+        ```
+        Native:
+        ```bash
+        sim_vehicle.py -v copter -l 39.360886,22.945749,0,0 --console --map
         ```
     * Wait for SITL to initialize completely (you should see GPS coordinates appearing). **Leave this terminal running.**
 

@@ -99,6 +99,13 @@ docker run --rm -it `
 docker exec -it ardupilot-sitl bash
 ```
 
+# Running the simulation (Docker)
+
+Inside the container, start SITL with the workshop script. It launches a copter at the workshop field in Volos, where the mission waypoints are:
+```bash
+/ardupilot/workshop/run.sh
+```
+
 # Sitl installation steps (native):
 
 ***Clone the repository from the official ArduPilot github***
@@ -131,6 +138,17 @@ bash install-prereqs-arch.sh
 For the first time:
 ```bash
 cd Tools/autotest/
-python sim_vehicle.py -w -v copter --console --map
+python sim_vehicle.py -w -v copter -l 39.360886,22.945749,0,0 --console --map
 ```
 To run subsequently, avoid the -w flag as it is not needed
+
+`-l` places the copter at the workshop field in Volos. Without it SITL starts in Australia, and the workshop missions will try to fly to Greece.
+
+# Troubleshooting
+
+**The map and console windows don't open (Docker)**
+- Linux: if `xhost +local:` fails with "command not found", install it (`sudo pacman -S xorg-xhost` on Arch, `sudo apt install x11-xserver-utils` on Debian/Ubuntu), run it again, then start the container.
+- Windows: XLaunch must already be running, with "Disable access control" ticked, before you run `docker run`. If you closed it, start it again and restart the container.
+
+**The drone starts in Australia, or the simple mission never finishes**
+SITL was started without the workshop location. Use `/ardupilot/workshop/run.sh` in Docker, or add `-l 39.360886,22.945749,0,0` to `sim_vehicle.py` natively.

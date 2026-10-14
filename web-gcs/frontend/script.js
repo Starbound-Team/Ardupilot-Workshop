@@ -91,7 +91,14 @@ function showToast(message, type = 'info', duration = 3000) {
         case 'warning': background = "#ffc107"; break;
         default: background = "#007bff"; // info
     }
-    
+
+    // Toastify comes from a CDN; if it is blocked (ad blocker, offline), log instead
+    // so the button that called us still does its job
+    if (typeof Toastify === 'undefined') {
+        console.log(`[${type}] ${message}`);
+        return;
+    }
+
     Toastify({
         text: message,
         duration: duration,
