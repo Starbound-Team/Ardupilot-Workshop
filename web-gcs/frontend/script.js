@@ -4,7 +4,8 @@ const statusButton = document.getElementById('statusButton');
 const takeoffButton = document.getElementById('takeoffButton');
 const altitudeInput = document.getElementById('altitudeInput');
 // const statusDiv = document.getElementById('status');
-const telemetryDataPre = document.getElementById('telemetryData');
+const telemetryList = document.getElementById('telemetryData');
+const telemetryState = document.getElementById('telemetryState');
 
 const backendUrl = 'http://127.0.0.1:5000'; // Your Flask backend URL
 
@@ -338,23 +339,39 @@ function sendExampleMission() {
 //     statusDiv.style.color = isError ? 'red' : 'black';
 // }
 
+// Formats a telemetry number, or a dash when the vehicle hasn't reported it
+function formatValue(value, digits, unit = '') {
+    return typeof value === 'number' ? `${value.toFixed(digits)}${unit}` : '–';
+}
+
+function renderTelemetry(data) {
+    const connected = Boolean(data && data.is_connected);
+    telemetryState.textContent = connected ? 'online' : 'offline';
+    telemetryState.classList.toggle('online', connected);
+
+    const d = connected ? data : {};
+    const rows = [
+        ['Mode', d.mode ?? '–'],
+        ['Armed', connected ? (d.armed ? 'Yes' : 'No') : '–'],
+        ['Altitude', formatValue(d.alt, 1, ' m')],
+        ['Groundspeed', formatValue(d.groundspeed, 1, ' m/s')],
+        ['Airspeed', formatValue(d.airspeed, 1, ' m/s')],
+        ['Heading', formatValue(d.heading, 0, '°')],
+        ['Battery', formatValue(d.battery_voltage, 2, ' V')],
+        ['Latitude', formatValue(d.lat, 6)],
+        ['Longitude', formatValue(d.lon, 6)],
+    ];
+    telemetryList.replaceChildren(...rows.flatMap(([label, value]) => {
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        return [dt, dd];
+    }));
+}
+
 function updateTelemetry(data) {
-    // Update Text Telemetry
-    if (data && data.is_connected) {
-        telemetryDataPre.textContent = JSON.stringify({
-            Mode: data.mode,
-            Armed: data.armed,
-            Latitude: data.lat,
-            Longitude: data.lon,
-            Altitude: data.alt,
-            Airspeed: data.airspeed,
-            Groundspeed: data.groundspeed,
-            Heading: data.heading,
-            Battery: data.battery_voltage ? `${data.battery_voltage}V` : 'N/A'
-        }, null, 2); // Pretty print JSON
-    } else {
-        telemetryDataPre.textContent = 'Disconnected or no data available.';
-    }
+    renderTelemetry(data);
 
     if (map && data && data.is_connected) {
         const lat = data.lat;
@@ -545,6 +562,15 @@ async function fetchStatus() {
 }
 
 // --- Event Listeners ---
+document.getElementById('telemetryToggle').addEventListener('click', () => {
+    document.getElementById('telemetry').classList.toggle('collapsed');
+});
+renderTelemetry(null); // Empty rows until the first status arrives
+// On a phone the panel would cover half the map, so it starts folded
+if (window.matchMedia('(max-width: 600px)').matches) {
+    document.getElementById('telemetry').classList.add('collapsed');
+}
+
 connectButton.addEventListener('click', connectToDrone);
 disconnectButton.addEventListener('click', disconnectFromDrone);
 statusButton.addEventListener('click', fetchStatus); // Manual status fetch
