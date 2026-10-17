@@ -21,7 +21,7 @@ This project is a web-based application designed to act as a simple Ground Contr
     * Battery Voltage (if available)
 * **Commands:** Takeoff (to the altitude in the input box) and Return to Launch.
 * **Interactive map** (Leaflet.js) showing the vehicle position and flight trail.
-* **Right-click map menu:** Go to a point, Return to home, and run the Simple / Circle workshop missions.
+* **Right-click map menu:** Go to a point, Return to home (the plane circles above it), Land here, and run the Simple / Circle workshop missions.
 * **Workshop exercises:** the takeoff and mission logic lives in `backend/workshop.py` and is filled in during the workshop.
 
 ## 💻 Tech Stack
@@ -82,15 +82,11 @@ Currently, the frontend consists of simple HTML, CSS, and JavaScript files. No b
 You need **three** separate terminal windows open to run the full system: one for SITL, one for the backend server, and one for the frontend server.
 
 1.  **Start ArduPilot SITL**
-    * Open a **new terminal** and start SITL, either inside the Docker container or from a native ArduPilot checkout (see the [main README](../README.md)). Both commands start the copter at the workshop field in Volos.
+    * Open a **new terminal** and start SITL, either inside the Docker container or from a native ArduPilot checkout (see the [main README](../README.md)). Both commands start the plane at the workshop field in Volos.
 
-        Docker:
+        Docker or native:
         ```bash
-        /ardupilot/workshop/run.sh
-        ```
-        Native:
-        ```bash
-        sim_vehicle.py -v copter -l 39.360886,22.945749,0,0 --console --map
+        sim_vehicle.py -v plane -l 39.360886,22.945749,0,0 --console --map
         ```
     * Wait for SITL to initialize completely (you should see GPS coordinates appearing). **Leave this terminal running.**
 
@@ -132,7 +128,7 @@ You need **three** separate terminal windows open to run the full system: one fo
 3.  Observe the **Status** section update. If successful, telemetry data should start appearing.
 4.  Use the **"Get Status"** button to manually refresh telemetry (it also polls automatically).
 5.  Use the **"Disconnect"** button to close the connection to the vehicle.
-6.  Use **Takeoff** to arm and climb, then right-click the map for Go-to, RTL and the workshop missions.
+6.  Use **Takeoff** to arm and climb, then right-click the map for Go-to, RTL, Land here and the workshop missions. A plane can't stop in the air: RTL and Go-to make it circle above the point until you send something else.
 
 > **Note:** the backend runs in Flask debug mode, so it restarts automatically every time you save `workshop.py`. The restart drops the vehicle connection, so click **Connect** again after each edit.
 

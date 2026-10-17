@@ -101,10 +101,11 @@ docker exec -it ardupilot-sitl bash
 
 # Running the simulation (Docker)
 
-Inside the container, start SITL with the workshop script. It launches a copter at the workshop field in Volos, where the mission waypoints are:
+Inside the container, start a plane at the workshop field in Volos, where the mission waypoints are:
 ```bash
-/ardupilot/workshop/run.sh
+sim_vehicle.py -v plane -l 39.360886,22.945749,0,0 --console --map
 ```
+> **TODO (plane branch):** the image's `/ardupilot/workshop/run.sh` still starts a copter. Until the image is updated, use the command above; the first run may need to build the plane, which takes a few minutes.
 
 # Sitl installation steps (native):
 
@@ -130,7 +131,7 @@ bash install-prereqs-arch.sh
 ***Configure the board and the vehicle type (Navigate to the initial directory first)***
 ```bash
 ./waf configure --board sitl
-./waf copter
+./waf plane
 ```
 
 ***Run the simulation***
@@ -138,11 +139,11 @@ bash install-prereqs-arch.sh
 For the first time:
 ```bash
 cd Tools/autotest/
-python sim_vehicle.py -w -v copter -l 39.360886,22.945749,0,0 --console --map
+python sim_vehicle.py -w -v plane -l 39.360886,22.945749,0,0 --console --map
 ```
 To run subsequently, avoid the -w flag as it is not needed
 
-`-l` places the copter at the workshop field in Volos. Without it SITL starts in Australia, and the workshop missions will try to fly to Greece.
+`-l` places the plane at the workshop field in Volos, and its last number is the direction the runway points (0 = north). Without it SITL starts in Australia, and the workshop missions will try to fly to Greece.
 
 # Troubleshooting
 
@@ -151,4 +152,4 @@ To run subsequently, avoid the -w flag as it is not needed
 - Windows: XLaunch must already be running, with "Disable access control" ticked, before you run `docker run`. If you closed it, start it again and restart the container.
 
 **The drone starts in Australia, or the simple mission never finishes**
-SITL was started without the workshop location. Use `/ardupilot/workshop/run.sh` in Docker, or add `-l 39.360886,22.945749,0,0` to `sim_vehicle.py` natively.
+SITL was started without the workshop location. Add `-l 39.360886,22.945749,0,0` to `sim_vehicle.py`.

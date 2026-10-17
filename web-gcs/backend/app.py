@@ -136,6 +136,13 @@ def connect_drone():
         except Exception as e:
              logging.warning(f"Could not retrieve all vehicle details immediately after connection: {e}")
 
+        # A plane circles this far from a GUIDED target. The SITL default (80 m) keeps it too far
+        # from the workshop's waypoints, so every plane gets the same tighter circle.
+        try:
+            vehicle.parameters['WP_LOITER_RAD'] = 30
+        except Exception as e:
+            logging.warning(f"Could not set WP_LOITER_RAD: {e}")
+
         start_live_map()
 
         return jsonify({"status": "success", "message": "Connected to Vehicle"})
@@ -284,8 +291,8 @@ def example_mission():
             vehicle,
             vehicle.location.global_relative_frame.lat,
             vehicle.location.global_relative_frame.lon,
-            altitude=20,
-            radius=30
+            altitude=30,
+            radius=150 # A plane needs a wide circle, it can't turn as tightly as a copter
         )
 
         logging.info("Mission completed.")
@@ -323,6 +330,30 @@ def rtl():
         return jsonify({"status": "success", "message": "Returning to Launch"})
     else:
         return jsonify({"status": "error", "message": "Vehicle not connected"}), 500
+
+@app.route('/api/land', methods=['POST'])
+def land():
+    """Lands the plane at a lat/lon coordinate (a plane's RTL only circles above home)."""
+    global vehicle
+    if not vehicle:
+        return jsonify({"status": "error", "message": "Vehicle not connected"}), 400
+
+    try:
+        data = request.get_json()
+        if not data or 'lat' not in data or 'lng' not in data:
+            return jsonify({"status": "error", "message": "Missing required parameters (lat, lng)"}), 400
+
+        target_lat = float(data['lat'])
+        target_lng = float(data['lng'])
+        logging.info(f"Landing at: lat={target_lat}, lon={target_lng}")
+        land_at(vehicle, target_lat, target_lng)
+        return jsonify({"status": "success", "message": "Landing"})
+    except ValueError as e:
+        logging.error(f"Invalid coordinates: {e}")
+        return jsonify({"status": "error", "message": f"Invalid coordinates: {e}"}), 400
+    except Exception as e:
+        logging.error(f"Error during land command: {e}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Error: {e}"}), 500
 
 @app.route('/api/goto', methods=['POST'])
 def goto_point():

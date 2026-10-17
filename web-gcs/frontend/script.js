@@ -49,6 +49,13 @@ function initMap() {
               sendReturnToHome();
             }
           },
+          {
+            text: 'Land here',
+            callback: function(e) {
+              const { lat, lng } = e.latlng;
+              sendLandCommand(lat, lng);
+            }
+          },
           '-', // Separator
           {
             text: 'Simple Mission',
@@ -119,7 +126,7 @@ function sendGoToCommand(lat, lng) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ lat, lng, altitude: 10 })
+        body: JSON.stringify({ lat, lng, altitude: 30 })
     })
     .then(response => {
         // Always try to parse the JSON first, even for error responses
@@ -221,6 +228,39 @@ function sendReturnToHome() {
     }
     ).catch(error => {
         console.error("Return to home fetch error:", error);
+        showToast(`Error: ${error.message}`, "error");
+    }
+    );
+}
+
+function sendLandCommand(lat, lng) {
+    showToast("Sending land command...", "info");
+    fetch(`${backendUrl}/api/land`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lat, lng })
+    }).then(response => {
+        // Always try to parse the JSON first, even for error responses
+        return response.json().then(data => {
+            // If response is not ok, throw an error with the message from the server
+            if (!response.ok) {
+                throw new Error(data.message || `Server responded with status: ${response.status}`);
+            }
+            // If response is ok, return the data for the next .then()
+            return data;
+        });
+    }
+    ).then(data => {
+        if (data.status === 'success') {
+            showToast("Landing...", "success");
+        } else {
+            showToast(`Command failed: ${data.message}`, "error");
+        }
+    }
+    ).catch(error => {
+        console.error("Land fetch error:", error);
         showToast(`Error: ${error.message}`, "error");
     }
     );

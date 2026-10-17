@@ -2,6 +2,7 @@
 import time
 
 from dronekit import connect, VehicleMode, APIException, LocationGlobalRelative, Command
+from pymavlink import mavutil
 import logging
 import math
 
@@ -55,11 +56,33 @@ def generate_circle_waypoints(center_lat, center_lon, altitude, radius=50, num_p
 
     return waypoints
 
+def land_at(my_vehicle, lat, lon):
+    """
+    Lands the plane at (lat, lon). It glides there in a straight line from wherever it is
+    and touches down near the point, so arrive low and already pointing at it for a short landing.
+    Returns straight away; the landing runs in AUTO mode.
+    """
+    # A one-item mission with just the landing point
+    cmds = my_vehicle.commands
+    cmds.download()
+    cmds.wait_ready()
+    cmds.clear()
+    cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                     mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0, 0, 0, lat, lon, 0))
+    cmds.upload()
+    cmds.next = 1 # Start from the landing point, not from where an older mission stopped
+    my_vehicle.mode = VehicleMode("AUTO")
+
 #We will change the functions below this point
 
 def workshop_takeoff(my_vehicle, target_altitude):
 
-    #set vehicle mode to guided here
+    #A plane takes off in TAKEOFF mode: once armed it speeds up, lifts off
+    #and climbs straight ahead to the altitude in the TKOFF_ALT parameter
+
+    #set the takeoff altitude here (the parameter is my_vehicle.parameters['TKOFF_ALT'])
+
+    #set vehicle mode to TAKEOFF here
 
     time.sleep(1)
 
@@ -70,7 +93,15 @@ def workshop_takeoff(my_vehicle, target_altitude):
     #    print(" Waiting for arming...")
     #    time.sleep(1)
 
-    #takeoff here
+    #There is no takeoff command: armed in TAKEOFF mode, the plane goes by itself.
+    #The code below waits until it has climbed, because on the runway it can't do anything else
+    #(we assume something is wrong if it hasn't climbed after a minute)
+    start_time = time.time()
+    while my_vehicle.location.global_relative_frame.alt < target_altitude * 0.9:
+        if time.time() - start_time > 60:
+            raise TimeoutError("The plane didn't climb. Is it armed and in TAKEOFF mode?")
+        print(f" Climbing, altitude {my_vehicle.location.global_relative_frame.alt:.1f} m")
+        time.sleep(1)
 
 def workshop_simple_mission(my_vehicle):
 
@@ -90,12 +121,14 @@ def workshop_simple_mission(my_vehicle):
     #if ...
         #raise Exception("Vehicle is not armed")
 
-    wp1 = LocationGlobalRelative(39.359523, 22.930260, 10)
-    wp2 = LocationGlobalRelative(39.361381, 22.933684, 10)
+    wp1 = LocationGlobalRelative(39.359523, 22.930260, 30)
+    wp2 = LocationGlobalRelative(39.361381, 22.933684, 30)
 
     waypoints = [wp1, wp2]
 
-    target_threshold = 3.0
+    #A plane can't stop or turn on the spot: it passes a waypoint 25 m away or more,
+    #and if it misses it circles about 50 m around it, so "reached" has to mean "within 60 m"
+    target_threshold = 60.0
 
     #We have access to both the index (i) and the waypoint (w)
     for i, w in enumerate(waypoints):
@@ -135,11 +168,11 @@ def workshop_create_circle(my_vehicle, lat, lon, altitude, radius = 50):
     center_lon = lon
     circle_altitude = altitude
     circle_radius = radius
-    circle_waypoint_num = 12
+    circle_waypoint_num = 8
     waypoints = generate_circle_waypoints(center_lat, center_lon, circle_altitude, circle_radius, circle_waypoint_num)
 
-    #Target threshold (feel free to tweak)
-    target_threshold = 3.0
+    #Target threshold (feel free to tweak, but a plane circles about 50 m around a point it missed)
+    target_threshold = 60.0
 
     #iterate over every waypoint here, similar to above
     #for ... in ...:
