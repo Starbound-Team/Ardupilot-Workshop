@@ -5,6 +5,13 @@ from dronekit import connect, VehicleMode, APIException, LocationGlobalRelative,
 import logging
 import math
 
+#Live map on the projector (optional)
+#Your name on the map, keep it short and different from everyone else's
+PILOT_NAME = ""
+#Address of the live map laptop, we will write it on the board (e.g. "http://192.168.1.50:8080")
+#Leave it empty to turn the live map off
+LIVE_MAP_URL = ""
+
 def get_distance_meters(a_location1, a_location2):
     """
     Returns the ground distance in metres between two LocationGlobal objects.

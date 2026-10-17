@@ -9,6 +9,10 @@ from flask_cors import CORS # Import CORS
 from dronekit import connect, VehicleMode, APIException, LocationGlobalRelative, Command
 import logging
 import math
+import json
+import socket
+import threading
+import urllib.request
 #workshop
 from workshop import *
 
@@ -18,10 +22,71 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # --- Global Variables ---
 vehicle = None
 connection_string = 'udp:127.0.0.1:14550' # Default SITL address
+live_map_thread = None
+LIVE_MAP_INTERVAL = 0.5 # Seconds between telemetry updates sent to the live map
 
 # --- Flask App Setup ---
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes, allowing requests from your frontend
+
+
+# --- Live Map ---
+def live_map_loop():
+    """
+    Runs in a background thread and sends the vehicle's telemetry to the live map
+    laptop every LIVE_MAP_INTERVAL seconds. Does nothing if LIVE_MAP_URL is empty.
+    A failed send is logged once and retried, so the GCS keeps working without the map.
+    """
+    name = PILOT_NAME.strip() or socket.gethostname()
+    url = LIVE_MAP_URL.rstrip('/') + '/api/telemetry'
+    map_reachable = True
+
+    while True:
+        time.sleep(LIVE_MAP_INTERVAL)
+        current_vehicle = vehicle # Read once, the global can become None at any time
+        if not current_vehicle:
+            continue
+
+        try:
+            location = current_vehicle.location.global_relative_frame
+            if location is None or location.lat is None or location.lon is None:
+                continue # No GPS position yet
+
+            payload = {
+                "name": name,
+                "lat": location.lat,
+                "lon": location.lon,
+                "alt": location.alt,
+                "heading": current_vehicle.heading,
+                "groundspeed": current_vehicle.groundspeed,
+                "mode": current_vehicle.mode.name,
+                "armed": current_vehicle.armed,
+            }
+            request_to_map = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode(),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(request_to_map, timeout=1).close()
+
+            if not map_reachable:
+                logging.info("Live map reachable again.")
+                map_reachable = True
+        except Exception as e:
+            if map_reachable:
+                logging.warning(f"Could not send telemetry to the live map at {url}: {e}")
+                map_reachable = False
+
+
+def start_live_map():
+    """Starts the live map thread once, if a live map address is set."""
+    global live_map_thread
+    if not LIVE_MAP_URL.strip() or live_map_thread:
+        return
+    live_map_thread = threading.Thread(target=live_map_loop, daemon=True)
+    live_map_thread.start()
+    logging.info(f"Sending telemetry to the live map at {LIVE_MAP_URL}")
 
 
 # --- API Endpoints ---
@@ -70,6 +135,8 @@ def connect_drone():
             logging.info(f"  Is Armable: {vehicle.is_armable}")
         except Exception as e:
              logging.warning(f"Could not retrieve all vehicle details immediately after connection: {e}")
+
+        start_live_map()
 
         return jsonify({"status": "success", "message": "Connected to Vehicle"})
 

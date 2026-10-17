@@ -135,3 +135,28 @@ You need **three** separate terminal windows open to run the full system: one fo
 6.  Use **Takeoff** to arm and climb, then right-click the map for Go-to, RTL and the workshop missions.
 
 > **Note:** the backend runs in Flask debug mode, so it restarts automatically every time you save `workshop.py`. The restart drops the vehicle connection, so click **Connect** again after each edit.
+
+## 📽️ Live Map (optional)
+
+A full screen map for the projector that shows every participant's drone live, each with its own colour and name. The workshop works without it.
+
+**On the laptop at the front** (needs Flask, e.g. from the backend's venv):
+```bash
+cd ardupilot-workshop/web-gcs/live-map
+python server.py
+```
+It prints two addresses: open the `localhost` one on the projector (F11 for full screen), and write the other one on the board. Participants' laptops must be on the same network, and the laptop's firewall must allow port 8080.
+
+**On every participant's laptop**, at the top of `backend/workshop.py`:
+```python
+PILOT_NAME = "Maria"
+LIVE_MAP_URL = "http://192.168.1.50:8080"   # the address from the board
+```
+After saving, click **Connect**. The backend then sends the drone's position twice per second.
+
+**Useful while running it:**
+* On the map: `F` fits all drones on screen, `T` shows/hides the trails. A drone that stops reporting fades out after 5 seconds.
+* Clear the map between rounds: `curl -X POST http://localhost:8080/api/reset`
+* Test the map without SITL: `python fake_drones.py 6` sends 6 made-up drones flying in circles.
+
+**Planning the challenge:** `http://localhost:8080/planner` is a map for placing the landmarks and the angles they must be seen from. It shows a draggable test drone and every live drone with its view cone, and turns a zone green while a drone sees the landmark from it. The plan saves in the browser and downloads as JSON.

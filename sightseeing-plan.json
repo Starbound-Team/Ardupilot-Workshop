@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "settings": {
+    "fov": 60,
+    "droneRadius": 10,
+    "coneLength": 40
+  },
+  "landmarks": [
+    {
+      "name": "Church",
+      "kind": "home",
+      "lat": 39.36052354733652,
+      "lon": 22.949173450469974,
+      "inner": 20,
+      "outer": 20,
+      "views": []
+    },
+    {
+      "name": "kordoni",
+      "kind": "sight",
+      "lat": 39.35695651086707,
+      "lon": 22.950938344001774,
+      "inner": 25,
+      "outer": 100,
+      "views": [
+        {
+          "bearing": 137,
+          "width": 60
+        },
+        {
+          "bearing": 264,
+          "width": 60
+        }
+      ]
+    },
+    {
+      "name": "agios_konstantinos",
+      "kind": "sight",
+      "lat": 39.35487427283022,
+      "lon": 22.956072092056278,
+      "inner": 30,
+      "outer": 115,
+      "views": [
+        {
+          "bearing": 160,
+          "width": 90
+        },
+        {
+          "bearing": 269,
+          "width": 60
+        }
+      ]
+    },
+    {
+      "name": "pelion",
+      "kind": "sight",
+      "lat": 39.36133647434771,
+      "lon": 22.941148281097416,
+      "inner": 5,
+      "outer": 70,
+      "views": [
+        {
+          "bearing": 252,
+          "width": 90
+        }
+      ]
+    }
+  ],
+  "testDrone": null
+}

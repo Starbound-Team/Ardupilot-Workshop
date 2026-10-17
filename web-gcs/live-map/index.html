@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            font-family: system-ui, sans-serif;
+            background: #111;
+        }
+
+        #map {
+            position: absolute;
+            inset: 0;
+        }
+
+        /* Drone list in the top right corner, sized to be readable on a projector */
+        #panel {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 1000;
+            width: 320px;
+            max-height: calc(100% - 32px);
+            overflow-y: auto;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(17, 17, 17, 0.85);
+            color: #fff;
+        }
+
+        #panel h1 {
+            margin: 0 0 12px;
+            font-size: 22px;
+        }
+
+        #panel h1 span {
+            color: #aaa;
+            font-weight: normal;
+        }
+
+        .drone-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-top: 1px solid #333;
+        }
+
+        .drone-row.stale {
+            opacity: 0.4;
+        }
+
+        .swatch {
+            flex: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .drone-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .drone-info {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        #offline {
+            display: none;
+            margin-top: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            background: #b00020;
+            font-weight: bold;
+        }
+
+        #help {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .drone-icon svg {
+            width: 32px;
+            height: 32px;
+            transition: transform 0.4s;
+        }
+
+        .drone-icon path {
+            stroke: #fff;
+            stroke-width: 1.5;
+        }
+
+        .drone-icon.stale {
+            opacity: 0.35;
+        }
+
+        .leaflet-tooltip.drone-label {
+            font-size: 15px;
+            font-weight: bold;
+            border-left-width: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="panel">
+        <h1>Live map <span id="count"></span></h1>
+        <div id="drone-list"></div>
+        <div id="offline">Can't reach the live map server</div>
+        <div id="help">F: fit all drones · T: show/hide trails</div>
+    </div>
+
+    <script>
+        const START_VIEW = [39.360886, 22.945749]; // Workshop launch point
+        const POLL_INTERVAL = 500; // ms
+        const STALE_AFTER = 5; // Seconds without updates before a drone is shown as lost
+
+        const map = L.map('map').setView(START_VIEW, 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const layers = {}; // name -> { marker, trail }
+        let showTrails = true;
+        let fittedOnce = false;
+
+        function createDroneLayers(drone) {
+            const icon = L.divIcon({
+                className: 'drone-icon',
+                html: `<svg viewBox="0 0 24 24"><path d="M12 2 L20 21 L12 17 L4 21 Z" fill="${drone.color}"/></svg>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+            });
+            // The name comes from participants, so it's set as text, never as HTML
+            const label = document.createElement('span');
+            label.textContent = drone.name;
+
+            const marker = L.marker([drone.lat, drone.lon], { icon })
+                .bindTooltip(label, { permanent: true, direction: 'right', offset: [16, 0], className: 'drone-label' })
+                .addTo(map);
+            marker.getTooltip().getElement()?.style.setProperty('border-left-color', drone.color);
+
+            const trail = L.polyline([], { color: drone.color, weight: 3, opacity: 0.7 });
+            if (showTrails) trail.addTo(map);
+            return { marker, trail };
+        }
+
+        function updateMap(drones) {
+            const seen = new Set();
+            for (const drone of drones) {
+                seen.add(drone.name);
+                layers[drone.name] ??= createDroneLayers(drone);
+                const { marker, trail } = layers[drone.name];
+
+                marker.setLatLng([drone.lat, drone.lon]);
+                trail.setLatLngs(drone.trail);
+
+                const stale = drone.age > STALE_AFTER;
+                marker.getTooltip().setOpacity(stale ? 0.4 : 0.9);
+                const element = marker.getElement();
+                if (element) {
+                    element.classList.toggle('stale', stale);
+                    element.querySelector('svg').style.transform = `rotate(${drone.heading ?? 0}deg)`;
+                }
+            }
+
+            // Drones that are gone from the server (after a reset)
+            for (const name of Object.keys(layers)) {
+                if (!seen.has(name)) {
+                    layers[name].marker.remove();
+                    layers[name].trail.remove();
+                    delete layers[name];
+                }
+            }
+
+            if (!fittedOnce && drones.length > 0) {
+                fitAllDrones();
+                fittedOnce = true;
+            }
+        }
+
+        function updatePanel(drones) {
+            document.getElementById('count').textContent = `(${drones.length})`;
+            const list = document.getElementById('drone-list');
+            list.replaceChildren();
+
+            for (const drone of [...drones].sort((a, b) => a.name.localeCompare(b.name))) {
+                const row = document.createElement('div');
+                row.className = 'drone-row';
+                row.classList.toggle('stale', drone.age > STALE_AFTER);
+
+                const swatch = document.createElement('div');
+                swatch.className = 'swatch';
+                swatch.style.background = drone.color;
+
+                const name = document.createElement('div');
+                name.className = 'drone-name';
+                name.textContent = drone.name;
+
+                const info = document.createElement('div');
+                info.className = 'drone-info';
+                if (drone.age > STALE_AFTER) {
+                    info.textContent = `Signal lost ${Math.round(drone.age)} s ago`;
+                } else {
+                    const alt = drone.alt != null ? `${drone.alt.toFixed(1)} m` : '-';
+                    const speed = drone.groundspeed != null ? `${drone.groundspeed.toFixed(1)} m/s` : '-';
+                    info.textContent = `${drone.mode} · ${drone.armed ? 'armed' : 'disarmed'} · ${alt} · ${speed}`;
+                }
+
+                const text = document.createElement('div');
+                text.append(name, info);
+                row.append(swatch, text);
+                list.append(row);
+            }
+        }
+
+        function fitAllDrones() {
+            const positions = Object.values(layers).map(({ marker }) => marker.getLatLng());
+            if (positions.length > 0) {
+                map.fitBounds(L.latLngBounds(positions).pad(0.3), { maxZoom: 17 });
+            }
+        }
+
+        function toggleTrails() {
+            showTrails = !showTrails;
+            for (const { trail } of Object.values(layers)) {
+                showTrails ? trail.addTo(map) : trail.remove();
+            }
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'f' || event.key === 'F') fitAllDrones();
+            if (event.key === 't' || event.key === 'T') toggleTrails();
+        });
+
+        async function poll() {
+            try {
+                const response = await fetch('/api/drones');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const drones = await response.json();
+                updateMap(drones);
+                updatePanel(drones);
+                document.getElementById('offline').style.display = 'none';
+            } catch (error) {
+                console.error('Live map update failed:', error);
+                document.getElementById('offline').style.display = 'block';
+            } finally {
+                setTimeout(poll, POLL_INTERVAL);
+            }
+        }
+
+        poll();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightseeing Planner</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            font-family: system-ui, sans-serif;
+            background: #111;
+        }
+
+        #map {
+            position: absolute;
+            inset: 0;
+        }
+
+        #map.placing {
+            cursor: crosshair;
+        }
+
+        #panel {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 1000;
+            width: 390px;
+            max-height: calc(100% - 32px);
+            overflow-y: auto;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(17, 17, 17, 0.9);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        #panel h1 {
+            margin: 0 0 12px;
+            font-size: 20px;
+        }
+
+        #panel h2 {
+            margin: 16px 0 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #aaa;
+        }
+
+        button, select, input {
+            font: inherit;
+            color: #fff;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 6px;
+        }
+
+        button {
+            padding: 6px 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #3a3a3a;
+        }
+
+        button.active {
+            background: #4363d8;
+            border-color: #4363d8;
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        #hint {
+            display: none;
+            margin-top: 8px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: #4363d8;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        input.num {
+            width: 56px;
+            padding: 3px 4px;
+        }
+
+        input.name {
+            flex: 1;
+            min-width: 0;
+            padding: 3px 6px;
+            font-weight: bold;
+        }
+
+        select {
+            padding: 3px;
+        }
+
+        .landmark {
+            padding: 10px 0;
+            border-top: 1px solid #333;
+        }
+
+        .swatch {
+            flex: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .muted {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .compass {
+            width: 24px;
+            color: #aaa;
+        }
+
+        .warning {
+            margin-top: 6px;
+            color: #ffb300;
+            font-size: 12px;
+        }
+
+        .seen {
+            margin-top: 6px;
+            color: #00c853;
+            font-size: 12px;
+        }
+
+        .x {
+            padding: 2px 7px;
+            color: #ccc;
+        }
+
+        .lm-icon div {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-sizing: border-box;
+        }
+
+        .lm-icon.home div {
+            border-radius: 2px;
+        }
+
+        .handle-icon div {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-sizing: border-box;
+            cursor: grab;
+        }
+
+        .drone-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .drone-icon path {
+            stroke: #fff;
+            stroke-width: 1.5;
+        }
+
+        .drone-icon.stale {
+            opacity: 0.35;
+        }
+
+        .leaflet-tooltip.lm-label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <div id="panel">
+        <h1>Sightseeing planner</h1>
+        <div class="buttons">
+            <button data-place="sight">+ Sight</button>
+            <button data-place="main">+ Main landmark</button>
+            <button data-place="home">+ Start / finish</button>
+            <button data-place="drone">Test drone</button>
+        </div>
+        <div id="hint"></div>
+
+        <h2>Drone view</h2>
+        <div class="row">
+            Field of view <input class="num" id="fov" type="number" min="5" max="360" step="5"> °
+        </div>
+        <div class="row">
+            Cone starts <input class="num" id="drone-radius" type="number" min="1" max="50" step="1"> m in front of the drone
+        </div>
+        <div class="muted">It reaches as far as the farthest view zone, so only the field of view decides what the drone sees.</div>
+        <div class="muted" id="live-status"></div>
+
+        <h2>Landmarks</h2>
+        <div id="landmark-list"></div>
+
+        <h2>Plan</h2>
+        <div class="buttons">
+            <button id="export">Download JSON</button>
+            <button id="copy">Copy JSON</button>
+            <button id="import">Import JSON</button>
+            <button id="clear">Clear all</button>
+        </div>
+        <input id="import-file" type="file" accept=".json,application/json" hidden>
+        <p class="muted">
+            Drag a landmark to move it, and drag the small dot in a view zone to turn it.
+            Drag the test drone to move it, and its front dot to turn it.
+            A zone turns green while a drone is inside it and facing the landmark. F: fit landmarks.
+        </p>
+    </div>
+
+    <script>
+        const START_VIEW = [39.360886, 22.945749]; // Workshop launch point
+        const POLL_INTERVAL = 500; // ms, same as the live map
+        const STALE_AFTER = 5; // Seconds without updates before a live drone is ignored
+        const M_PER_DEG = 111319.5; // Metres per degree of latitude, same approximation as workshop.py
+        const STORAGE_KEY = 'sightseeing-planner';
+        const SEEN_COLOR = '#00c853';
+        const KINDS = {
+            sight: { label: 'Sight', color: '#4363d8' },
+            main: { label: 'Main landmark (orbit)', color: '#911eb4' },
+            home: { label: 'Start / finish', color: '#3cb44b' },
+        };
+        const DEFAULT_SETTINGS = { fov: 60, droneRadius: 6 };
+        const DEFAULT_CONE_LENGTH = 40; // m, until there is a landmark to measure against
+
+        const map = L.map('map').setView(START_VIEW, 17);
+        const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            maxNativeZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 20,
+            maxNativeZoom: 18,
+            attribution: 'Tiles &copy; Esri'
+        });
+        L.control.layers({ 'Streets': streets, 'Satellite': satellite }, null, { position: 'topleft' }).addTo(map);
+
+        // ---------- Geometry (flat earth, fine over a few hundred metres) ----------
+
+        function offset(lat, lon, distance, bearing) {
+            const b = bearing * Math.PI / 180;
+            return [
+                lat + distance * Math.cos(b) / M_PER_DEG,
+                lon + distance * Math.sin(b) / (M_PER_DEG * Math.cos(lat * Math.PI / 180)),
+            ];
+        }
+
+        /** Distance in metres and bearing in degrees (0 = north, clockwise) from point 1 to point 2. */
+        function distanceBearing(lat1, lon1, lat2, lon2) {
+            const north = (lat2 - lat1) * M_PER_DEG;
+            const east = (lon2 - lon1) * M_PER_DEG * Math.cos(lat1 * Math.PI / 180);
+            return {
+                distance: Math.hypot(north, east),
+                bearing: (Math.atan2(east, north) * 180 / Math.PI + 360) % 360,
+            };
+        }
+
+        /** Smallest angle between two bearings, 0 to 180. */
+        function angleBetween(a, b) {
+            return Math.abs(((a - b) % 360 + 540) % 360 - 180);
+        }
+
+        function arc(lat, lon, radius, from, to) {
+            const steps = Math.max(8, Math.ceil(Math.abs(to - from) / 4));
+            const points = [];
+            for (let i = 0; i <= steps; i++) {
+                points.push(offset(lat, lon, radius, from + (to - from) * i / steps));
+            }
+            return points;
+        }
+
+        /**
+         * A slice of a ring around (lat, lon): between the inner and outer radius, centred on
+         * the bearing and `width` degrees wide. A full 360 degree slice is a ring with a hole.
+         */
+        function annularSector(lat, lon, inner, outer, bearing, width) {
+            if (width >= 360) {
+                const outerRing = arc(lat, lon, outer, 0, 360);
+                return inner > 0 ? [outerRing, arc(lat, lon, inner, 360, 0)] : outerRing;
+            }
+            const from = bearing - width / 2;
+            const to = bearing + width / 2;
+            const innerEdge = inner > 0 ? arc(lat, lon, inner, to, from) : [[lat, lon]];
+            return [...arc(lat, lon, outer, from, to), ...innerEdge];
+        }
+
+        function compass(bearing) {
+            return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(bearing / 45) % 8];
+        }
+
+        // ---------- State ----------
+
+        let state = { settings: { ...DEFAULT_SETTINGS }, landmarks: [], testDrone: null };
+        let nextId = 1;
+
+        function normalizeLandmark(raw) {
+            const kind = KINDS[raw.kind] ? raw.kind : 'sight';
+            const number = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+            return {
+                id: nextId++,
+                name: String(raw.name ?? KINDS[kind].label),
+                kind,
+                lat: number(raw.lat, START_VIEW[0]),
+                lon: number(raw.lon, START_VIEW[1]),
+                inner: number(raw.inner, 20),
+                outer: number(raw.outer, kind === 'home' ? 10 : 40),
+                views: Array.isArray(raw.views)
+                    ? raw.views.map(v => ({ bearing: number(v.bearing, 0), width: number(v.width, 60) }))
+                    : [],
+            };
+        }
+
+        function loadPlan(plan) {
+            nextId = 1;
+            const { coneLength, ...settings } = plan.settings ?? {}; // Older plans stored a fixed cone length
+            state = {
+                settings: { ...DEFAULT_SETTINGS, ...settings },
+                landmarks: (plan.landmarks ?? []).map(normalizeLandmark),
+                testDrone: plan.testDrone ?? null,
+            };
+        }
+
+        /** The plan without internal ids, as saved, downloaded and copied. */
+        function planJson() {
+            return JSON.stringify({
+                version: 1,
+                settings: state.settings,
+                landmarks: state.landmarks.map(({ id, ...landmark }) => landmark),
+                testDrone: state.testDrone,
+            }, null, 2);
+        }
+
+        function save() {
+            try {
+                localStorage.setItem(STORAGE_KEY, planJson());
+            } catch (error) {
+                console.warn('Could not save the plan in the browser:', error);
+            }
+        }
+
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) loadPlan(JSON.parse(saved));
+        } catch (error) {
+            console.warn('Could not load the saved plan:', error);
+        }
+
+        // ---------- Landmarks on the map ----------
+
+        const landmarkLayers = {}; // id -> { marker, zones, handles }
+        const panelRefs = {}; // id -> elements of that landmark's panel entry that change while dragging
+
+        function textElement(text) {
+            const span = document.createElement('span');
+            span.textContent = text;
+            return span;
+        }
+
+        /** The areas a drone has to be in to see the landmark, as {bearing, width} slices. */
+        function zonesOf(landmark) {
+            if (landmark.kind === 'sight') return landmark.views;
+            return [{ bearing: 0, width: 360 }];
+        }
+
+        function zoneLatLngs(landmark, zone) {
+            const inner = landmark.kind === 'home' ? 0 : landmark.inner;
+            return annularSector(landmark.lat, landmark.lon, inner, landmark.outer, zone.bearing, zone.width);
+        }
+
+        function handlePosition(landmark, view) {
+            return offset(landmark.lat, landmark.lon, (landmark.inner + landmark.outer) / 2, view.bearing);
+        }
+
+        function buildLandmark(landmark) {
+            const color = KINDS[landmark.kind].color;
+            const marker = L.marker([landmark.lat, landmark.lon], {
+                icon: L.divIcon({
+                    className: `lm-icon ${landmark.kind}`,
+                    html: `<div style="background:${color}"></div>`,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7],
+                }),
+                draggable: true,
+                zIndexOffset: 1000,
+            })
+                .bindTooltip(textElement(landmark.name), { permanent: true, direction: 'right', offset: [8, 0], className: 'lm-label' })
+                .addTo(map);
+            marker.on('drag', () => {
+                const position = marker.getLatLng();
+                landmark.lat = position.lat;
+                landmark.lon = position.lng;
+                updateLandmark(landmark, marker);
+                evaluate();
+            });
+            marker.on('dragend', save);
+
+            const zones = zonesOf(landmark).map(zone =>
+                L.polygon(zoneLatLngs(landmark, zone), { color, weight: 1, fillOpacity: 0.15, interactive: false }).addTo(map));
+
+            const handles = landmark.kind !== 'sight' ? [] : landmark.views.map(view => {
+                const handle = L.marker(handlePosition(landmark, view), {
+                    icon: L.divIcon({
+                        className: 'handle-icon',
+                        html: `<div style="background:${color}"></div>`,
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6],
+                    }),
+                    draggable: true,
+                    zIndexOffset: 500,
+                }).addTo(map);
+                handle.on('drag', () => {
+                    const position = handle.getLatLng();
+                    view.bearing = Math.round(distanceBearing(landmark.lat, landmark.lon, position.lat, position.lng).bearing);
+                    updateLandmark(landmark, handle);
+                    evaluate();
+                });
+                handle.on('dragend', () => {
+                    handle.setLatLng(handlePosition(landmark, view)); // Snap back onto the zone's middle line
+                    save();
+                });
+                return handle;
+            });
+
+            landmarkLayers[landmark.id] = { marker, zones, handles };
+        }
+
+        /** Moves an existing landmark's shapes after a change, leaving `dragged` where the mouse has it. */
+        function updateLandmark(landmark, dragged = null) {
+            const layers = landmarkLayers[landmark.id];
+            if (layers.marker !== dragged) layers.marker.setLatLng([landmark.lat, landmark.lon]);
+            layers.marker.setTooltipContent(textElement(landmark.name));
+            zonesOf(landmark).forEach((zone, i) => layers.zones[i].setLatLngs(zoneLatLngs(landmark, zone)));
+            layers.handles.forEach((handle, i) => {
+                if (handle !== dragged) handle.setLatLng(handlePosition(landmark, landmark.views[i]));
+            });
+            refreshLandmarkInfo(landmark);
+        }
+
+        /** Rebuilds every landmark shape and the panel, after something was added, removed or changed kind. */
+        function rebuildAll() {
+            for (const { marker, zones, handles } of Object.values(landmarkLayers)) {
+                [marker, ...zones, ...handles].forEach(layer => layer.remove());
+            }
+            for (const id of Object.keys(landmarkLayers)) delete landmarkLayers[id];
+            state.landmarks.forEach(buildLandmark);
+            renderPanel();
+            redrawDrones(); // The cones' reach depends on the landmarks
+            evaluate();
+            save();
+        }
+
+        function addLandmark(kind, lat, lon) {
+            const count = state.landmarks.filter(l => l.kind === kind).length + 1;
+            const names = { sight: `Sight ${count}`, main: 'Main landmark', home: 'Church' };
+            const views = kind === 'sight' ? [{ bearing: 180, width: 60 }, { bearing: 270, width: 60 }] : [];
+            state.landmarks.push(normalizeLandmark({ name: names[kind], kind, lat, lon, views }));
+            rebuildAll();
+        }
+
+        // ---------- Drones (the test drone and the live ones) ----------
+
+        function droneIcon(color) {
+            return L.divIcon({
+                className: 'drone-icon',
+                html: `<svg viewBox="0 0 24 24"><path d="M12 2 L20 21 L12 17 L4 21 Z" fill="${color}"/></svg>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14],
+            });
+        }
+
+        /** How far the cones reach: the outer edge of the farthest view zone. */
+        function coneLength() {
+            const reaches = state.landmarks.filter(l => l.kind !== 'home').map(l => l.outer);
+            return reaches.length > 0 ? Math.max(...reaches) : DEFAULT_CONE_LENGTH;
+        }
+
+        /** A drone marker with its view cone in front, starting a little ahead of the drone. */
+        function createDroneShape(color, draggable) {
+            return {
+                cone: L.polygon([START_VIEW], { color, weight: 1, fillOpacity: 0.2, interactive: false }).addTo(map),
+                marker: L.marker(START_VIEW, { icon: droneIcon(color), draggable, zIndexOffset: 2000 }).addTo(map),
+            };
+        }
+
+        function placeDroneShape(shape, drone, markerIsDragged = false) {
+            const { droneRadius, fov } = state.settings;
+            if (!markerIsDragged) shape.marker.setLatLng([drone.lat, drone.lon]);
+            shape.cone.setLatLngs(annularSector(drone.lat, drone.lon, droneRadius, coneLength(), drone.heading, fov));
+            const svg = shape.marker.getElement()?.querySelector('svg');
+            if (svg) svg.style.transform = `rotate(${drone.heading}deg)`;
+        }
+
+        function removeDroneShape(shape) {
+            [shape.cone, shape.marker, shape.handle].forEach(layer => layer?.remove());
+        }
+
+        let testShape = null;
+
+        function headingHandlePosition(drone) {
+            return offset(drone.lat, drone.lon, coneLength(), drone.heading);
+        }
+
+        function showTestDrone() {
+            if (testShape) removeDroneShape(testShape);
+            testShape = null;
+            const drone = state.testDrone;
+            if (!drone) return;
+
+            testShape = createDroneShape('#e6194b', true);
+            testShape.marker.bindTooltip('Test drone', { direction: 'right', offset: [14, 0] });
+            testShape.handle = L.marker(headingHandlePosition(drone), {
+                icon: L.divIcon({ className: 'handle-icon', html: '<div style="background:#e6194b"></div>', iconSize: [12, 12], iconAnchor: [6, 6] }),
+                draggable: true,
+                zIndexOffset: 2000,
+            }).addTo(map);
+            placeDroneShape(testShape, drone);
+
+            testShape.marker.on('drag', () => {
+                const position = testShape.marker.getLatLng();
+                drone.lat = position.lat;
+                drone.lon = position.lng;
+                placeDroneShape(testShape, drone, true);
+                testShape.handle.setLatLng(headingHandlePosition(drone));
+                evaluate();
+            });
+            testShape.handle.on('drag', () => {
+                const position = testShape.handle.getLatLng();
+                drone.heading = Math.round(distanceBearing(drone.lat, drone.lon, position.lat, position.lng).bearing);
+                placeDroneShape(testShape, drone);
+                evaluate();
+            });
+            testShape.handle.on('dragend', () => testShape.handle.setLatLng(headingHandlePosition(drone)));
+            testShape.marker.on('dragend', save);
+            testShape.handle.on('dragend', save);
+        }
+
+        const liveShapes = {}; // name -> drone shape
+        let liveDrones = [];
+
+        function updateLiveDrones(drones) {
+            liveDrones = drones.map(d => ({ ...d, heading: d.heading ?? 0 }));
+            const seen = new Set();
+            for (const drone of liveDrones) {
+                seen.add(drone.name);
+                if (!liveShapes[drone.name]) {
+                    liveShapes[drone.name] = createDroneShape(drone.color, false);
+                    liveShapes[drone.name].marker.bindTooltip(textElement(drone.name), { permanent: true, direction: 'right', offset: [14, 0] });
+                }
+                placeDroneShape(liveShapes[drone.name], drone);
+                liveShapes[drone.name].marker.getElement()?.classList.toggle('stale', drone.age > STALE_AFTER);
+            }
+            for (const name of Object.keys(liveShapes)) {
+                if (!seen.has(name)) {
+                    removeDroneShape(liveShapes[name]);
+                    delete liveShapes[name];
+                }
+            }
+        }
+
+        function redrawDrones() {
+            if (testShape) {
+                placeDroneShape(testShape, state.testDrone);
+                testShape.handle.setLatLng(headingHandlePosition(state.testDrone));
+            }
+            for (const drone of liveDrones) placeDroneShape(liveShapes[drone.name], drone);
+        }
+
+        // ---------- Who sees what ----------
+
+        /** Index of the landmark's zone the drone sees it from, or -1. Seeing = inside the zone and facing it. */
+        function seenFromZone(drone, landmark) {
+            const { distance, bearing } = distanceBearing(landmark.lat, landmark.lon, drone.lat, drone.lon);
+            if (landmark.kind === 'home') return distance <= landmark.outer ? 0 : -1;
+            if (distance < landmark.inner || distance > landmark.outer) return -1;
+            const facing = angleBetween((bearing + 180) % 360, drone.heading) <= state.settings.fov / 2;
+            if (!facing) return -1;
+            return zonesOf(landmark).findIndex(zone => angleBetween(bearing, zone.bearing) <= zone.width / 2);
+        }
+
+        function activeDrones() {
+            const drones = liveDrones.filter(d => d.age <= STALE_AFTER);
+            if (state.testDrone) drones.unshift({ name: 'Test drone', ...state.testDrone });
+            return drones;
+        }
+
+        function evaluate() {
+            const drones = activeDrones();
+            for (const landmark of state.landmarks) {
+                const layers = landmarkLayers[landmark.id];
+                const seenBy = layers.zones.map(() => []);
+                for (const drone of drones) {
+                    const zone = seenFromZone(drone, landmark);
+                    if (zone >= 0) seenBy[zone].push(drone.name);
+                }
+                const color = KINDS[landmark.kind].color;
+                layers.zones.forEach((polygon, i) => {
+                    const seen = seenBy[i].length > 0;
+                    polygon.setStyle({ color: seen ? SEEN_COLOR : color, fillOpacity: seen ? 0.4 : 0.15, weight: seen ? 2 : 1 });
+                });
+                const refs = panelRefs[landmark.id];
+                if (refs) {
+                    const names = [...new Set(seenBy.flat())];
+                    const verb = landmark.kind === 'home' ? 'Inside' : 'Seen by';
+                    refs.seen.textContent = names.length ? `${verb}: ${names.join(', ')}` : '';
+                }
+            }
+        }
+
+        // ---------- Panel ----------
+
+        function el(tag, props = {}, ...children) {
+            const element = document.createElement(tag);
+            Object.assign(element, props);
+            element.append(...children);
+            return element;
+        }
+
+        function numberInput(value, onChange, { min, max, step = 1 }) {
+            return el('input', {
+                type: 'number', className: 'num', value, min, max, step,
+                oninput: (event) => {
+                    const number = parseFloat(event.target.value);
+                    if (Number.isFinite(number)) onChange(Math.min(max, Math.max(min, number)));
+                },
+            });
+        }
+
+        /** Text in the panel that changes while dragging: coordinates, view bearings, warnings. */
+        function refreshLandmarkInfo(landmark) {
+            const refs = panelRefs[landmark.id];
+            if (!refs) return;
+            refs.coords.textContent = `${landmark.lat.toFixed(6)}, ${landmark.lon.toFixed(6)}`;
+            landmark.views.forEach((view, i) => {
+                if (!refs.views[i]) return;
+                if (document.activeElement !== refs.views[i].input) refs.views[i].input.value = view.bearing;
+                refs.views[i].compass.textContent = compass(view.bearing);
+            });
+            if (refs.warning) {
+                let closest = 360;
+                for (let i = 0; i < landmark.views.length; i++) {
+                    for (let j = i + 1; j < landmark.views.length; j++) {
+                        closest = Math.min(closest, angleBetween(landmark.views[i].bearing, landmark.views[j].bearing));
+                    }
+                }
+                refs.warning.textContent = landmark.views.length < 2 ? 'Needs 2 views'
+                    : closest < 90 ? `Two views are only ${Math.round(closest)}° apart (rule: at least 90°)` : '';
+            }
+        }
+
+        function landmarkEntry(landmark) {
+            const color = KINDS[landmark.kind].color;
+            const refs = { views: [] };
+            panelRefs[landmark.id] = refs;
+
+            const header = el('div', { className: 'row' },
+                el('div', {
+                    className: 'swatch', title: 'Zoom to it',
+                    onclick: () => map.setView([landmark.lat, landmark.lon], 18),
+                }),
+                el('input', {
+                    className: 'name', value: landmark.name,
+                    oninput: (event) => { landmark.name = event.target.value; updateLandmark(landmark); save(); },
+                }),
+                el('select', {
+                    onchange: (event) => {
+                        landmark.kind = event.target.value;
+                        if (landmark.kind === 'sight' && landmark.views.length === 0) {
+                            landmark.views = [{ bearing: 180, width: 60 }, { bearing: 270, width: 60 }];
+                        }
+                        rebuildAll();
+                    },
+                }, ...Object.entries(KINDS).map(([kind, { label }]) =>
+                    el('option', { value: kind, textContent: label, selected: kind === landmark.kind }))),
+                el('button', {
+                    className: 'x', textContent: '×', title: 'Delete',
+                    onclick: () => { state.landmarks = state.landmarks.filter(l => l !== landmark); rebuildAll(); },
+                }),
+            );
+            header.firstChild.style.background = color;
+
+            refs.coords = el('div', { className: 'muted' });
+            const entry = el('div', { className: 'landmark' }, header, refs.coords);
+            const changed = () => { updateLandmark(landmark); redrawDrones(); evaluate(); save(); };
+
+            if (landmark.kind === 'home') {
+                entry.append(el('div', { className: 'row' }, 'Landing radius',
+                    numberInput(landmark.outer, v => { landmark.outer = v; changed(); }, { min: 1, max: 200 }), 'm'));
+            } else {
+                entry.append(el('div', { className: 'row' }, 'Seen from',
+                    numberInput(landmark.inner, v => { landmark.inner = Math.min(v, landmark.outer - 1); changed(); }, { min: 0, max: 500 }),
+                    'to',
+                    numberInput(landmark.outer, v => { landmark.outer = Math.max(v, landmark.inner + 1); changed(); }, { min: 1, max: 500 }),
+                    'm away'));
+            }
+
+            if (landmark.kind === 'main') {
+                entry.append(el('div', { className: 'muted' }, 'Needs a full orbit inside the ring'));
+            }
+
+            if (landmark.kind === 'sight') {
+                landmark.views.forEach((view, i) => {
+                    const input = numberInput(view.bearing, v => { view.bearing = v % 360; changed(); }, { min: 0, max: 360, step: 5 });
+                    const compassLabel = el('span', { className: 'compass' });
+                    refs.views[i] = { input, compass: compassLabel };
+                    entry.append(el('div', { className: 'row' },
+                        `View ${i + 1}: from`, input, '°', compassLabel, 'width',
+                        numberInput(view.width, v => { view.width = v; changed(); }, { min: 5, max: 359, step: 5 }), '°',
+                        el('button', {
+                            className: 'x', textContent: '×', title: 'Delete this view',
+                            onclick: () => { landmark.views.splice(i, 1); rebuildAll(); },
+                        })));
+                });
+                entry.append(el('div', { className: 'row' }, el('button', {
+                    textContent: '+ View',
+                    onclick: () => {
+                        const last = landmark.views.at(-1);
+                        landmark.views.push({ bearing: last ? (last.bearing + 90) % 360 : 0, width: 60 });
+                        rebuildAll();
+                    },
+                })));
+                refs.warning = el('div', { className: 'warning' });
+                entry.append(refs.warning);
+            }
+
+            refs.seen = el('div', { className: 'seen' });
+            entry.append(refs.seen);
+            return entry;
+        }
+
+        function renderPanel() {
+            for (const id of Object.keys(panelRefs)) delete panelRefs[id];
+            const list = document.getElementById('landmark-list');
+            list.replaceChildren(...state.landmarks.map(landmarkEntry));
+            if (state.landmarks.length === 0) {
+                list.append(el('div', { className: 'muted', textContent: 'None yet. Use the buttons above, then click the map.' }));
+            }
+            state.landmarks.forEach(refreshLandmarkInfo);
+        }
+
+        function settingInput(id, key) {
+            const input = document.getElementById(id);
+            input.value = state.settings[key];
+            input.addEventListener('input', () => {
+                const value = parseFloat(input.value);
+                if (!Number.isFinite(value) || value <= 0) return;
+                state.settings[key] = value;
+                redrawDrones();
+                evaluate();
+                save();
+            });
+        }
+        settingInput('fov', 'fov');
+        settingInput('drone-radius', 'droneRadius');
+
+        // ---------- Placing things on the map ----------
+
+        let placing = null; // 'sight', 'main', 'home', 'drone' or null
+        const HINTS = {
+            sight: 'Click the map where the sight is',
+            main: 'Click the map where the main landmark is',
+            home: 'Click the map where the drones start and finish',
+            drone: 'Click the map to put the test drone there',
+        };
+
+        function setPlacing(kind) {
+            placing = placing === kind ? null : kind;
+            document.querySelectorAll('[data-place]').forEach(b => b.classList.toggle('active', b.dataset.place === placing));
+            document.getElementById('map').classList.toggle('placing', placing !== null);
+            const hint = document.getElementById('hint');
+            hint.style.display = placing ? 'block' : 'none';
+            hint.textContent = placing ? `${HINTS[placing]} (Esc to cancel)` : '';
+        }
+
+        document.querySelectorAll('[data-place]').forEach(button =>
+            button.addEventListener('click', () => setPlacing(button.dataset.place)));
+
+        map.on('click', (event) => {
+            if (!placing) return;
+            const { lat, lng } = event.latlng;
+            if (placing === 'drone') {
+                state.testDrone = { lat, lon: lng, heading: state.testDrone?.heading ?? 0 };
+                showTestDrone();
+                evaluate();
+                save();
+            } else {
+                addLandmark(placing, lat, lng);
+            }
+            setPlacing(null);
+        });
+
+        function fitLandmarks() {
+            const positions = state.landmarks.map(l => [l.lat, l.lon]);
+            if (positions.length > 0) map.fitBounds(L.latLngBounds(positions).pad(0.3), { maxZoom: 18 });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.target.matches('input, select')) return;
+            if (event.key === 'Escape') setPlacing(null);
+            if (event.key === 'f' || event.key === 'F') fitLandmarks();
+        });
+
+        // ---------- Import / export ----------
+
+        document.getElementById('export').addEventListener('click', () => {
+            const link = el('a', {
+                href: URL.createObjectURL(new Blob([planJson()], { type: 'application/json' })),
+                download: 'sightseeing-plan.json',
+            });
+            link.click();
+            URL.revokeObjectURL(link.href);
+        });
+
+        document.getElementById('copy').addEventListener('click', async (event) => {
+            try {
+                await navigator.clipboard.writeText(planJson());
+                event.target.textContent = 'Copied!';
+            } catch (error) {
+                console.error('Copy failed:', error);
+                event.target.textContent = 'Copy failed';
+            }
+            setTimeout(() => { event.target.textContent = 'Copy JSON'; }, 1500);
+        });
+
+        const importFile = document.getElementById('import-file');
+        document.getElementById('import').addEventListener('click', () => importFile.click());
+        importFile.addEventListener('change', async () => {
+            const file = importFile.files[0];
+            importFile.value = '';
+            if (!file) return;
+            try {
+                loadPlan(JSON.parse(await file.text()));
+            } catch (error) {
+                alert(`Could not read ${file.name}: ${error.message}`);
+                return;
+            }
+            document.getElementById('fov').value = state.settings.fov;
+            document.getElementById('drone-radius').value = state.settings.droneRadius;
+            showTestDrone();
+            rebuildAll();
+            fitLandmarks();
+        });
+
+        document.getElementById('clear').addEventListener('click', () => {
+            if (!confirm('Delete every landmark and the test drone?')) return;
+            state.landmarks = [];
+            state.testDrone = null;
+            showTestDrone();
+            rebuildAll();
+        });
+
+        // ---------- Live drones from server.py ----------
+
+        const liveStatus = document.getElementById('live-status');
+
+        async function poll() {
+            try {
+                const response = await fetch('/api/drones');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                updateLiveDrones(await response.json());
+                const active = liveDrones.filter(d => d.age <= STALE_AFTER).length;
+                liveStatus.textContent = `Live drones: ${active}`;
+            } catch (error) {
+                updateLiveDrones([]);
+                liveStatus.textContent = "Can't reach the live map server, showing the test drone only";
+            } finally {
+                evaluate();
+                setTimeout(poll, POLL_INTERVAL);
+            }
+        }
+
+        showTestDrone();
+        rebuildAll();
+        if (state.landmarks.length > 0) fitLandmarks();
+        if (location.protocol.startsWith('http')) {
+            poll();
+        } else {
+            liveStatus.textContent = 'Open it through server.py (/planner) to also see live drones';
+        }
+    </script>
+</body>
+
+</html>
