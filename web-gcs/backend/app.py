@@ -226,6 +226,8 @@ def get_status():
                  "running_buttons": game.running_buttons(),
                  "camera_ready": game.camera_ready(),
                  "target": game.current_target(vehicle),
+                 "score": game.score(),
+                 "photo_log": game.photo_log(),
                  "button_error": game.last_error(),
              }
              return jsonify({"status": "success", "data": status})

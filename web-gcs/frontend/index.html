@@ -235,13 +235,19 @@
             inset: 0;
         }
 
-        /* Telemetry floats over the map, like the drone list on the live map */
-        #telemetry {
+        /* Score and telemetry float over the map bottom right, like the drone list on the live map */
+        #sidePanels {
             position: absolute;
             right: 12px;
             bottom: 28px;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             width: 250px;
+        }
+
+        .panel {
             padding: 12px 16px;
             border-radius: 12px;
             background: rgba(17, 17, 17, 0.85);
@@ -249,7 +255,7 @@
             font-size: 14px;
         }
 
-        #telemetryToggle {
+        .panel-toggle {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -264,15 +270,38 @@
             cursor: pointer;
         }
 
-        .telemetry-state {
+        .panel-badge {
             padding: 2px 10px;
             border-radius: 999px;
             background: #c62828;
             font-size: 12px;
+            font-variant-numeric: tabular-nums;
         }
 
-        .telemetry-state.online {
+        .panel-badge.online {
             background: #2e7d32;
+        }
+
+        .panel-badge.gold {
+            background: #f9a825;
+            color: #3e2700;
+            font-weight: 700;
+        }
+
+        /* Folding slides: the body's single grid row animates between its full height and 0 */
+        .panel-body {
+            display: grid;
+            grid-template-rows: 1fr;
+            transition: grid-template-rows 0.25s ease;
+        }
+
+        .panel-body > div {
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .panel.collapsed .panel-body {
+            grid-template-rows: 0fr;
         }
 
         .telemetry-grid {
@@ -292,9 +321,6 @@
             font-variant-numeric: tabular-nums;
         }
 
-        #telemetry.collapsed .telemetry-grid {
-            display: none;
-        }
 
         @media (max-width: 1100px) {
             .nav-links .company-name {
@@ -345,7 +371,7 @@
                 font-size: 14px;
             }
 
-            #telemetry {
+            #sidePanels {
                 left: 12px;
                 right: 12px;
                 bottom: 24px;
@@ -398,18 +424,26 @@
     <main class="map-area">
         <div id="map"></div>
 
-        <div id="telemetry">
-            <button id="telemetryToggle" type="button" title="Show or hide">
-                Telemetry <span id="telemetryState" class="telemetry-state">offline</span>
-            </button>
-            <dl id="telemetryData" class="telemetry-grid"></dl>
+        <div id="sidePanels">
+            <section id="score" class="panel">
+                <button class="panel-toggle" type="button" title="Show or hide">
+                    Score <span id="scoreBadge" class="panel-badge gold">0</span>
+                </button>
+                <div class="panel-body"><div><dl id="scoreData" class="telemetry-grid"></dl></div></div>
+            </section>
+            <section id="telemetry" class="panel">
+                <button class="panel-toggle" type="button" title="Show or hide">
+                    Telemetry <span id="telemetryState" class="panel-badge">offline</span>
+                </button>
+                <div class="panel-body"><div><dl id="telemetryData" class="telemetry-grid"></dl></div></div>
+            </section>
         </div>
     </main>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Bump ?v= whenever script.js changes, so browsers don't keep running a cached old copy -->
-    <script src="script.js?v=10" defer></script>
+    <script src="script.js?v=12" defer></script>
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>

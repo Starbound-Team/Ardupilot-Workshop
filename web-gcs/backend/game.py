@@ -180,6 +180,25 @@ def _photo_problem(position, heading, landmark):
 
 
 _camera_ready_at = 0 # time.time() when the camera can take the next photo
+_money = 0
+_photos_sold = 0
+_last_sale = None # "Practice 1 +100"
+_photo_log = [] # (number, sold, text) of recent photos, newest last, for the GCS to show as toasts
+
+
+def _log_photo(sold, text):
+    number = _photo_log[-1][0] + 1 if _photo_log else 1
+    _photo_log.append((number, sold, text))
+    del _photo_log[:-10]
+
+
+def photo_log():
+    return list(_photo_log)
+
+
+def score():
+    """Your score so far, for the GCS. The game server will add the leader and whoever is just ahead of you."""
+    return {"money": _money, "photos": _photos_sold, "last_sale": _last_sale}
 
 
 def camera_ready():
@@ -192,7 +211,7 @@ def take_photo():
     (and prints why). The game checks the plane's own position and heading, not what your code thinks.
     A photo that doesn't count costs you: the camera needs PHOTO_COOLDOWN seconds before the next one.
     """
-    global _camera_ready_at
+    global _camera_ready_at, _money, _photos_sold, _last_sale
     if _vehicle is None:
         print("Photo: not connected")
         return False
@@ -206,13 +225,19 @@ def take_photo():
             with _practice_lock:
                 _practice[_practice.index(landmark)] = _new_practice_landmark(landmark.loc)
             print(f"Photo: sold {landmark.name} for {landmark.price}")
+            _money += landmark.price
+            _photos_sold += 1
+            _last_sale = f"{landmark.name} +{landmark.price}"
+            _log_photo(True, f"Sold {landmark.name} for {landmark.price}")
             return True
     _camera_ready_at = time.time() + PHOTO_COOLDOWN
     if not landmarks:
         print("Photo: nothing to photograph")
+        _log_photo(False, "Photo: nothing to photograph")
         return False
     nearest = min(landmarks, key=lambda landmark: get_distance_meters(position, landmark.loc))
     print(f"Photo: {_photo_problem(position, heading, nearest)}, camera ready again in {PHOTO_COOLDOWN} s")
+    _log_photo(False, f"Photo didn't count: {_photo_problem(position, heading, nearest)}")
     return False
 
 

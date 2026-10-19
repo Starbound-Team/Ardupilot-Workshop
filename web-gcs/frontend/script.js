@@ -26,6 +26,7 @@ let landmarkLayer = null; // Landmarks and their photo zones
 let landmarkViews = []; // [{lm, zone, dot, label}] for colouring them as the plane moves
 let droneCone = null; // What the camera sees: FIELD_OF_VIEW wide, CONE_LENGTH long
 let lastTelemetry = null;
+let lastPhotoShown = null; // Number of the newest photo result we have shown as a toast
 let lastButtonError = null; // Number of the last button crash we showed
 
 // --- Map Initialization ---
@@ -98,6 +99,7 @@ function showToast(message, type = 'info', duration = 3000) {
         case 'success': background = "#28a745"; break;
         case 'error': background = "#dc3545"; duration = 5000; break; // Longer duration for errors
         case 'warning': background = "#ffc107"; break;
+        case 'sold': background = "linear-gradient(135deg, #ffe082, #f9a825)"; break;
         default: background = "#007bff"; // info
     }
 
@@ -114,9 +116,10 @@ function showToast(message, type = 'info', duration = 3000) {
         close: true,
         gravity: "top",
         position: "right",
-        style: {
-            background: background
-        }
+        // Dark text on the light gold and yellow backgrounds, white on the rest
+        style: type === 'sold' ? { background, color: '#3e2700', fontWeight: 700 }
+            : type === 'warning' ? { background, color: '#3e2700' }
+            : { background }
     }).showToast();
 }
 
@@ -524,6 +527,41 @@ function formatValue(value, digits, unit = '') {
     return typeof value === 'number' ? `${value.toFixed(digits)}${unit}` : '–';
 }
 
+function fillGrid(list, rows) {
+    list.replaceChildren(...rows.flatMap(([label, value]) => {
+        const dt = document.createElement('dt');
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.textContent = value;
+        return [dt, dd];
+    }));
+}
+
+// Our own score for now; with the game server, also the leader and whoever is just ahead of us
+function renderScore(data) {
+    const score = data && data.score;
+    document.getElementById('scoreBadge').textContent = score ? score.money : 0;
+    fillGrid(document.getElementById('scoreData'), [
+        ['Money', score ? score.money : '–'],
+        ['Photos sold', score ? score.photos : '–'],
+        ['Last sale', (score && score.last_sale) || '–'],
+    ]);
+}
+
+// A toast for each new photo result: gold when it sold
+function showPhotoResults(data) {
+    const log = (data && data.photo_log) || [];
+    const newest = log.length ? log[log.length - 1][0] : 0;
+    if (lastPhotoShown === null || newest < lastPhotoShown) { // Just connected, or the backend restarted
+        lastPhotoShown = newest;
+        return;
+    }
+    log.filter(([number]) => number > lastPhotoShown).forEach(([, sold, text]) => {
+        showToast(text, sold ? 'sold' : 'warning', sold ? 4000 : 3000);
+    });
+    lastPhotoShown = newest;
+}
+
 function renderTelemetry(data) {
     const connected = Boolean(data && data.is_connected);
     telemetryState.textContent = connected ? 'online' : 'offline';
@@ -541,13 +579,11 @@ function renderTelemetry(data) {
         ['Latitude', formatValue(d.lat, 6)],
         ['Longitude', formatValue(d.lon, 6)],
     ];
-    telemetryList.replaceChildren(...rows.flatMap(([label, value]) => {
-        const dt = document.createElement('dt');
-        dt.textContent = label;
-        const dd = document.createElement('dd');
-        dd.textContent = value;
-        return [dt, dd];
-    }));
+    fillGrid(telemetryList, rows);
+    renderScore(connected ? data : null);
+    if (connected) {
+        showPhotoResults(data);
+    }
 }
 
 function updateTelemetry(data) {
@@ -676,6 +712,7 @@ function setUIConnected(connected) {
             droneCone = null;
         }
         showTarget(null);
+        lastPhotoShown = null;
         landmarkViews = [];
         lastTelemetry = null;
         if (droneMarker) {
@@ -783,13 +820,13 @@ document.getElementById('moreButton').addEventListener('click', () => {
     menu.hidden = !menu.hidden;
 });
 window.addEventListener('resize', fitWorkshopButtons);
-document.getElementById('telemetryToggle').addEventListener('click', () => {
-    document.getElementById('telemetry').classList.toggle('collapsed');
+document.querySelectorAll('.panel-toggle').forEach(toggle => {
+    toggle.addEventListener('click', () => toggle.closest('.panel').classList.toggle('collapsed'));
 });
 renderTelemetry(null); // Empty rows until the first status arrives
-// On a phone the panel would cover half the map, so it starts folded
+// On a phone the panels would cover half the map, so they start folded
 if (window.matchMedia('(max-width: 600px)').matches) {
-    document.getElementById('telemetry').classList.add('collapsed');
+    document.querySelectorAll('.panel').forEach(panel => panel.classList.add('collapsed'));
 }
 
 connectButton.addEventListener('click', connectToDrone);
