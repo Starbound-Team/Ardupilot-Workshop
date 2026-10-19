@@ -144,6 +144,28 @@
             box-shadow: none;
         }
 
+        #workshopButtons {
+            display: contents;
+        }
+        .pill.running {
+            background: #2e7d32;
+        }
+        .pill.stop-button {
+            background: #c62828;
+        }
+        .pill.stop-button:hover {
+            background: #e53935;
+        }
+        .waypoint-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #0d2b6b;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+        }
         .map-area {
             position: relative;
             flex: 1;
@@ -299,6 +321,8 @@
                 <input type="number" id="altitudeInput" value="30" min="1">
                 <button id="takeoffButton" class="pill" disabled>Takeoff</button>
             </div>
+            <!-- One pill per @button function in workshop.py, plus Stop -->
+            <div id="workshopButtons"></div>
         </div>
         <!-- Navigation Links -->
         <div class="nav-items">
@@ -321,7 +345,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Bump ?v= whenever script.js changes, so browsers don't keep running a cached old copy -->
-    <script src="script.js?v=2" defer></script>
+    <script src="script.js?v=3" defer></script>
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>

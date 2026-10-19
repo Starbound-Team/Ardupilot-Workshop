@@ -1,10 +1,10 @@
-# Make sure all necessary DroneKit classes are imported
+#Your code for the workshop. Fill it in part by part; the cheat sheet says what each part needs.
+#Everything you get ready-made (measuring, landmarks, photos, buttons) is in game.py.
+import math
 import time
 
-from dronekit import connect, VehicleMode, APIException, LocationGlobalRelative, Command
-from pymavlink import mavutil
-import logging
-import math
+from dronekit import VehicleMode, LocationGlobalRelative
+from game import *
 
 #Live map on the projector (optional)
 #Your name on the map, keep it short and different from everyone else's
@@ -13,69 +13,10 @@ PILOT_NAME = ""
 #Leave it empty to turn the live map off
 LIVE_MAP_URL = ""
 
-def get_distance_meters(a_location1, a_location2):
-    """
-    Returns the ground distance in metres between two LocationGlobal objects.
-    This method is an approximation, and will not be accurate over large distances and close to the
-    earth's poles. It comes from the ArduPilot test code:
-    https://github.com/diydrones/ardupilot/blob/master/Tools/autotest/common.py
-    """
-    # Check if locations are valid location objects with lat/lon
-    # (works with LocationGlobal and LocationGlobalRelative alike)
-    if a_location1 is None or a_location2 is None or \
-       a_location1.lat is None or a_location1.lon is None or \
-       a_location2.lat is None or a_location2.lon is None:
-        logging.warning("Attempted to calculate distance with invalid location(s).")
-        return float('inf') # Return infinite distance for invalid input
 
-    dlat = a_location2.lat - a_location1.lat
-    dlon = a_location2.lon - a_location1.lon
-    return math.sqrt((dlat*dlat) + (dlon*dlon)) * 1.113195e5
-    
-def generate_circle_waypoints(center_lat, center_lon, altitude, radius=50, num_points=12):
-    """Generates a list of LocationGlobalRelative waypoints for a circle."""
-    waypoints = []
-    if center_lat is None or center_lon is None:
-        logging.error("Cannot generate waypoints: Center location is invalid.")
-        return waypoints
+#---------- Part 1: Takeoff (the Takeoff button in the GCS runs this) ----------
 
-    for i in range(num_points):
-        angle = (2 * math.pi * i) / num_points
-        # Approximate conversion from radius in meters to degrees lat/lon
-        # meters per degree latitude is approx constant
-        dlat_deg = (radius * math.cos(angle)) / 111319.5
-        # meters per degree longitude varies with latitude
-        dlon_deg = (radius * math.sin(angle)) / (111319.5 * math.cos(math.radians(center_lat)))
-        waypoints.append(LocationGlobalRelative(
-            center_lat + dlat_deg,
-            center_lon + dlon_deg,
-            altitude
-        ))
-
-    waypoints.append(waypoints[0])
-
-    return waypoints
-
-def land_at(my_vehicle, lat, lon):
-    """
-    Lands the plane at (lat, lon). It glides there in a straight line from wherever it is
-    and touches down near the point, so arrive low and already pointing at it for a short landing.
-    Returns straight away; the landing runs in AUTO mode.
-    """
-    # A one-item mission with just the landing point
-    cmds = my_vehicle.commands
-    cmds.download()
-    cmds.wait_ready()
-    cmds.clear()
-    cmds.add(Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-                     mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 0, 0, 0, 0, 0, lat, lon, 0))
-    cmds.upload()
-    cmds.next = 1 # Start from the landing point, not from where an older mission stopped
-    my_vehicle.mode = VehicleMode("AUTO")
-
-#We will change the functions below this point
-
-def workshop_takeoff(my_vehicle, target_altitude):
+def take_off(my_vehicle, target_altitude):
 
     #A plane takes off in TAKEOFF mode: once armed it speeds up, lifts off
     #and climbs straight ahead to the altitude in the TKOFF_ALT parameter
@@ -103,8 +44,12 @@ def workshop_takeoff(my_vehicle, target_altitude):
         print(f" Climbing, altitude {my_vehicle.location.global_relative_frame.alt:.1f} m")
         time.sleep(1)
 
-def workshop_simple_mission(my_vehicle):
 
+#---------- Part 2: Flying to a point ----------
+
+def fly_to(my_vehicle, location):
+
+    #The plane only follows your commands in GUIDED mode
     if my_vehicle.mode.name != "GUIDED":
 
         #Set mode to guided here
@@ -117,76 +62,114 @@ def workshop_simple_mission(my_vehicle):
                 raise TimeoutError("Timeout setting mode to GUIDED")
             time.sleep(0.5)
 
-    #Fill so we check is vehicle is armed
-    #if ...
-        #raise Exception("Vehicle is not armed")
+    #Send the plane to location here
 
-    wp1 = LocationGlobalRelative(39.359523, 22.930260, 30)
-    wp2 = LocationGlobalRelative(39.361381, 22.933684, 30)
+    #A plane can't stop or turn on the spot: it passes a point 25 m away or more,
+    #and if it misses it circles about 50 m around it, so "arrived" has to mean "within 60 m"
+    arrived_distance = 60.0
 
-    waypoints = [wp1, wp2]
+    while True:
+        #Get the plane's current location here
 
-    #A plane can't stop or turn on the spot: it passes a waypoint 25 m away or more,
-    #and if it misses it circles about 50 m around it, so "reached" has to mean "within 60 m"
-    target_threshold = 60.0
+        #Get the distance to location here
 
-    #We have access to both the index (i) and the waypoint (w)
-    for i, w in enumerate(waypoints):
-        print(f"Going to waypoint {i+1}")
+        #fill the code so we leave while True once we are closer than arrived_distance
+        #if ...
+        #    break
 
-        #go to waypoint w here
+        #We will check the distance every second
+        time.sleep(1)
 
-        while True:
-            #Check if vehicle disconnected during the mission
-            if not my_vehicle:
-                logging.error("Vehicle disconnected during mission.")
-                raise Exception("Vehicle disconnected during mission")
 
-            #Get Current location here
+#---------- Part 3: A mission from your clicks ----------
+#Right-click the map and pick "Add waypoint" a few times, then press "Simple mission" in the GCS.
+#The @button line is what puts the button there: it runs the function below it.
 
-            #Get the distance from the waypoint using get_distance_meters()
+@button("Simple mission")
+def simple_mission(my_vehicle):
 
-            #fill the code so we leave while True if we are within a threshold
-            #of the waypoint (target_threshold)
-            #if ...
-            #    print(f"Reached waypoint {i+1}")
-            #    break
+    waypoints = get_clicked_waypoints()
+    if not waypoints:
+        print("No waypoints: right-click the map and pick 'Add waypoint' first")
+        return
 
-            #We will get the distance every second
-            time.sleep(1)
+    #Fly to every waypoint in turn here
+    #for ... in ...:
 
     print("All waypoints travelled!")
 
-def workshop_create_circle(my_vehicle, lat, lon, altitude, radius = 50):
 
-    #Set vehicle mode to guided if it isn't here (look at the code above)
+#---------- Part 4: Can we take the photo? ----------
 
-    #Check if the vehicle is armed (look at the code above)
+def can_photograph(position, heading, landmark):
 
-    #Feel free to change parameters below, or the function itself!
-    center_lat = lat
-    center_lon = lon
-    circle_altitude = altitude
-    circle_radius = radius
-    circle_waypoint_num = 8
-    waypoints = generate_circle_waypoints(center_lat, center_lon, circle_altitude, circle_radius, circle_waypoint_num)
+    #A photo counts when all three are true:
 
-    #Target threshold (feel free to tweak, but a plane circles about 50 m around a point it missed)
-    target_threshold = 60.0
+    #1. The distance from the landmark is between landmark.inner and landmark.outer
 
-    #iterate over every waypoint here, similar to above
-    #for ... in ...:
+    #2. We are on the right side: the direction from the landmark to us
+    #   is at most landmark.view_width / 2 away from landmark.approach_from
 
-        #go to next waypoint here
+    #3. We are facing it: the direction from us to the landmark
+    #   is at most FIELD_OF_VIEW / 2 away from heading
 
-    #    while True:
-
-            #Check if vehicle is still connected
-
-            #Break if we are within a target threshold of the waypoint
-
-            #sleep for a while
-
-    print("Circle completed!")
+    return False
 
 
+#---------- Part 5: Lining up ----------
+
+def get_approach_point(landmark, position):
+
+    #Where to turn in towards the landmark: a point on the line it must be approached along
+    #(direction landmark.approach_from from it), far enough out that the plane is straight again
+    #before it gets close. The more the plane turns there, the further out it has to be.
+
+    #1. A first guess, 300 m out along that line
+
+    #2. turn = how much the plane turns at the guess: the angle between
+    #   (direction from position to the guess) and (direction from the guess to the landmark)
+
+    #3. How far the turn swings the plane sideways (given):
+    #   swing = SWING_METERS * (1 - math.cos(math.radians(turn)))
+
+    #4. How far out the point must be so that swing still leaves us on the right side (given):
+    #   distance = swing / math.tan(math.radians(landmark.view_width / 2 - 10)) + 60
+    #   but at least landmark.outer + 50
+
+    #5. Return the point that far out along the line
+
+    return landmark.loc
+
+
+#---------- Part 6: Photographing a landmark ----------
+#Rename it if you like, just change the name where you use it too
+
+def capture(my_vehicle, landmark):
+
+    #Fly to the approach point
+
+    #Point the plane at the landmark (no waiting this time)
+
+    #Until the photo sells or we have flown past the landmark:
+    #    if can_photograph(...): take_photo() returns True if it sold
+    #    check often, the plane covers 20 m every second
+
+    pass
+
+
+@button("Nearest first")
+def nearest_first(my_vehicle):
+
+    while True:
+        landmarks = get_known_landmarks()
+        if not landmarks:
+            time.sleep(1)
+            continue
+
+        #Pick the nearest landmark and capture it
+
+        time.sleep(1)
+
+
+#---------- Part 7: Your own strategies ----------
+#Add as many @button functions as you like. Pressing a button stops the one that's running.

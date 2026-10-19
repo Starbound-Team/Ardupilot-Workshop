@@ -15,6 +15,7 @@ import threading
 import urllib.request
 #workshop
 from workshop import *
+import game
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -144,6 +145,7 @@ def connect_drone():
             logging.warning(f"Could not set WP_LOITER_RAD: {e}")
 
         start_live_map()
+        game.use_vehicle(vehicle)
 
         return jsonify({"status": "success", "message": "Connected to Vehicle"})
 
@@ -168,6 +170,8 @@ def connect_drone():
 def disconnect_drone():
     """Disconnects the DroneKit vehicle object."""
     global vehicle
+    game.stop_button()
+    game.use_vehicle(None)
     if vehicle:
         logging.info("Closing vehicle connection...")
         try:
@@ -219,6 +223,8 @@ def get_status():
                  "battery_level": batt_level,
                  "system_status": vehicle.system_status.state,
                  "ekf_ok": vehicle.ekf_ok if hasattr(vehicle, 'ekf_ok') else None, # EKF status
+                 "running_button": game.running_button(),
+                 "button_error": game.last_error(),
              }
              return jsonify({"status": "success", "data": status})
          except APIException as e:
@@ -257,7 +263,7 @@ def takeoff():
 
         target_altitude = float(data['altitude'])
         logging.info(f"Commanding takeoff to {target_altitude}m...")
-        workshop_takeoff(vehicle, target_altitude)
+        take_off(vehicle, target_altitude)
 
         logging.info("Takeoff completed.")
         return jsonify({
@@ -277,54 +283,12 @@ def takeoff():
         logging.error(f"An unexpected error occurred during takeoff: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Unexpected Error during takeoff: {e}"}), 500
 
-@app.route('/api/example_mission', methods=['POST'])
-def example_mission():
-    """Example mission endpoint."""
-    global vehicle
-    if not vehicle:
-        return jsonify({"status": "error", "message": "Vehicle not connected"}), 500
-    
-    try:
-        logging.info("Circle example mission...")
-
-        workshop_create_circle(
-            vehicle,
-            vehicle.location.global_relative_frame.lat,
-            vehicle.location.global_relative_frame.lon,
-            altitude=30,
-            radius=150 # A plane needs a wide circle, it can't turn as tightly as a copter
-        )
-
-        logging.info("Mission completed.")
-        
-        return jsonify({"status": "success", "message": "Mission executed"})
-    except Exception as e:
-        logging.error(f"Mission execution failed: {str(e)}")
-        return jsonify({"status": "error", "message": f"Mission execution failed: {str(e)}"}), 500
-
-@app.route("/api/simple_mission", methods=['POST'])
-def simple_mission():
-    """Example mission endpoint."""
-    global vehicle
-    if not vehicle:
-        return jsonify({"status": "error", "message": "Vehicle not connected"}), 500
-
-    try:
-        logging.info("Executing example mission...")
-
-        workshop_simple_mission(vehicle)
-        logging.info("Mission completed.")
-
-        return jsonify({"status": "success", "message": "Mission executed"})
-    except Exception as e:
-        logging.error(f"Mission execution failed: {str(e)}")
-        return jsonify({"status": "error", "message": f"Mission execution failed: {str(e)}"}), 500
-    
 @app.route('/api/rtl', methods=['POST'])
 def rtl():
     """Return to Launch (RTL) command."""
     global vehicle
     if vehicle:
+        game.stop_button()
         logging.info("Returning to Launch...")
         vehicle.mode = VehicleMode("RTL")
         return jsonify({"status": "success", "message": "Returning to Launch"})
@@ -345,6 +309,7 @@ def land():
 
         target_lat = float(data['lat'])
         target_lng = float(data['lng'])
+        game.stop_button()
         logging.info(f"Landing at: lat={target_lat}, lon={target_lng}")
         land_at(vehicle, target_lat, target_lng)
         return jsonify({"status": "success", "message": "Landing"})
@@ -387,6 +352,8 @@ def goto_point():
             
         logging.info(f"Going to: lat={target_lat}, lon={target_lng}, alt={target_alt}m")
         
+        game.stop_button()
+
         # Ensure vehicle is in GUIDED mode
         if vehicle.mode.name != "GUIDED":
             logging.info("Changing to GUIDED mode for goto command")
@@ -414,6 +381,41 @@ def goto_point():
     except Exception as e:
         logging.error(f"Error during goto command: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Error: {e}"}), 500
+
+# --- Buttons from workshop.py ---
+@app.route('/api/buttons')
+def list_buttons():
+    """The @button functions in workshop.py, in order, for the GCS to draw."""
+    return jsonify({"status": "success", "buttons": list(game.buttons)})
+
+@app.route('/api/buttons/run', methods=['POST'])
+def run_button():
+    """Runs a @button function in the background, stopping the one that was running."""
+    if not vehicle:
+        return jsonify({"status": "error", "message": "Vehicle not connected"}), 400
+    data = request.get_json() or {}
+    name = data.get('name')
+    if name not in game.buttons:
+        return jsonify({"status": "error", "message": f"No button called {name!r} in workshop.py"}), 400
+    waypoints = [(float(lat), float(lng)) for lat, lng in data.get('waypoints', [])]
+    game.run_button(name, vehicle, waypoints)
+    return jsonify({"status": "success", "message": f"{name} started"})
+
+@app.route('/api/buttons/stop', methods=['POST'])
+def stop_button():
+    """Stops the running @button function. The plane keeps circling where it was going."""
+    game.stop_button()
+    return jsonify({"status": "success", "message": "Stopped"})
+
+@app.route('/api/landmarks')
+def landmarks():
+    """The landmarks this plane knows about, for the map."""
+    if not vehicle:
+        return jsonify({"status": "success", "landmarks": []})
+    return jsonify({"status": "success", "landmarks": [
+        {"name": lm.name, "lat": lm.loc.lat, "lon": lm.loc.lon, "approach_from": lm.approach_from,
+         "view_width": lm.view_width, "inner": lm.inner, "outer": lm.outer, "price": lm.price, "public": lm.public}
+        for lm in game.get_known_landmarks()]})
 
 # --- Main Execution ---
 if __name__ == '__main__':

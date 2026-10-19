@@ -19,6 +19,10 @@ let flightPathPolyline = null;  // Leaflet Polyline object
 // --- State Variables ---
 let isConnected = false;
 let statusInterval = null; // To hold the interval timer for fetching status
+let landmarkInterval = null; // Timer for fetching the landmarks
+let waypoints = []; // [{lat, lng, marker}] added with right-click -> Add waypoint
+let landmarkLayer = null; // Landmarks and their photo zones
+let lastButtonError = null; // Number of the last button crash we showed
 
 // --- Map Initialization ---
 function initMap() {
@@ -41,7 +45,13 @@ function initMap() {
           {
             text: 'Add waypoint',
             callback: function(e) {
-              // Add waypoint logic
+              addWaypoint(e.latlng.lat, e.latlng.lng);
+            }
+          },
+          {
+            text: 'Clear waypoints',
+            callback: function(e) {
+              clearWaypoints();
             }
           },
           {
@@ -55,19 +65,6 @@ function initMap() {
             callback: function(e) {
               const { lat, lng } = e.latlng;
               sendLandCommand(lat, lng);
-            }
-          },
-          '-', // Separator
-          {
-            text: 'Simple Mission',
-            callback: function(e) {
-              sendSimpleMission();
-            }
-          },
-          {
-            text: 'Circle Mission',
-            callback: function(e) {
-              sendExampleMission();
             }
           },
           '-', // Separator
@@ -267,70 +264,121 @@ function sendLandCommand(lat, lng) {
     );
 }
 
-function sendSimpleMission() {
-    showToast("Sending example mission...", "info");
-    fetch(`${backendUrl}/api/simple_mission`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-    }).then(response => {
-        // Always try to parse the JSON first, even for error responses
-        return response.json().then(data => {
-            // If response is not ok, throw an error with the message from the server
-            if (!response.ok) {
-                throw new Error(data.message || `Server responded with status: ${response.status}`);
-            }
-            // If response is ok, return the data for the next .then()
-            return data;
-        });
-    }
-    ).then(data => {
-        if (data.status === 'success') {
-            showToast("Mission started successfully", "success");
-        } else {
-            showToast(`Command failed: ${data.message}`, "error");
-        }
-    }
-    ).catch(error => {
-        console.error("Simple mission fetch error:", error);
-        showToast(`Error: ${error.message}`, "error");
-    }
-    );
+// --- Waypoints (sent along with every workshop button) ---
+function addWaypoint(lat, lng) {
+    const marker = L.marker([lat, lng], {
+        keep: true, // Survives reconnecting, like after saving workshop.py
+        icon: L.divIcon({
+            className: 'waypoint-marker',
+            html: `${waypoints.length + 1}`,
+            iconSize: [24, 24]
+        })
+    }).addTo(map);
+    waypoints.push({ lat, lng, marker });
 }
 
-function sendExampleMission() {
-    showToast("Sending circle mission...", "info");
-    fetch(`${backendUrl}/api/example_mission`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-    }).then(response => {
-        // Always try to parse the JSON first, even for error responses
-        return response.json().then(data => {
-            // If response is not ok, throw an error with the message from the server
-            if (!response.ok) {
-                throw new Error(data.message || `Server responded with status: ${response.status}`);
-            }
-            // If response is ok, return the data for the next .then()
-            return data;
+function clearWaypoints() {
+    waypoints.forEach(w => map.removeLayer(w.marker));
+    waypoints = [];
+}
+
+// --- Workshop buttons: one per @button function in workshop.py ---
+async function loadWorkshopButtons() {
+    const container = document.getElementById('workshopButtons');
+    try {
+        const response = await fetch(`${backendUrl}/api/buttons`);
+        const data = await response.json();
+        const pills = data.buttons.map(name => {
+            const pill = document.createElement('button');
+            pill.className = 'pill workshop-button';
+            pill.textContent = name;
+            pill.dataset.name = name;
+            pill.addEventListener('click', () => runWorkshopButton(name));
+            return pill;
         });
+        const stop = document.createElement('button');
+        stop.className = 'pill stop-button';
+        stop.textContent = 'Stop';
+        stop.addEventListener('click', stopWorkshopButton);
+        container.replaceChildren(...pills, stop);
+    } catch (error) {
+        console.error('Could not load the workshop buttons:', error);
+        container.replaceChildren();
     }
-    ).then(data => {
-        if (data.status === 'success') {
-            showToast("Mission started successfully", "success");
-        } else {
-            showToast(`Command failed: ${data.message}`, "error");
+}
+
+function postJson(path, body) {
+    return fetch(`${backendUrl}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(response => response.json().then(data => {
+        if (!response.ok || data.status !== 'success') {
+            throw new Error(data.message || `Server responded with status: ${response.status}`);
         }
+        return data;
+    }));
+}
+
+function runWorkshopButton(name) {
+    postJson('/api/buttons/run', { name, waypoints: waypoints.map(w => [w.lat, w.lng]) })
+        .then(() => showToast(`${name} started`, "success"))
+        .catch(error => showToast(`Error: ${error.message}`, "error"));
+}
+
+function stopWorkshopButton() {
+    postJson('/api/buttons/stop', {})
+        .then(() => showToast("Stopped", "info"))
+        .catch(error => showToast(`Error: ${error.message}`, "error"));
+}
+
+function showRunningButton(data) {
+    document.querySelectorAll('.workshop-button').forEach(pill => {
+        pill.classList.toggle('running', Boolean(data && pill.dataset.name === data.running_button));
+    });
+    const error = data && data.button_error;
+    if (error && error[0] !== lastButtonError) {
+        lastButtonError = error[0];
+        showToast(`Crashed: ${error[1]} (details in the backend terminal)`, "error", 8000);
     }
-    ).catch(error => {
-        console.error("Circle mission fetch error:", error);
-        showToast(`Error: ${error.message}`, "error");
+}
+
+// --- Landmarks: a dot plus its photo zone, the slice of ring on the side it must be photographed from ---
+function offsetLatLng(lat, lon, distance, direction) {
+    const d = direction * Math.PI / 180;
+    return [lat + distance * Math.cos(d) / 111319.5,
+            lon + distance * Math.sin(d) / (111319.5 * Math.cos(lat * Math.PI / 180))];
+}
+
+function photoZone(lm) {
+    const points = [];
+    for (let i = 0; i <= 12; i++) {
+        points.push(offsetLatLng(lm.lat, lm.lon, lm.outer, lm.approach_from - lm.view_width / 2 + lm.view_width * i / 12));
     }
-    );
+    for (let i = 12; i >= 0; i--) {
+        points.push(offsetLatLng(lm.lat, lm.lon, lm.inner, lm.approach_from - lm.view_width / 2 + lm.view_width * i / 12));
+    }
+    return points;
+}
+
+async function fetchLandmarks() {
+    try {
+        const response = await fetch(`${backendUrl}/api/landmarks`);
+        const data = await response.json();
+        if (!landmarkLayer) {
+            landmarkLayer = L.layerGroup().addTo(map);
+        }
+        landmarkLayer.clearLayers();
+        data.landmarks.forEach(lm => {
+            const color = lm.public ? '#f9a825' : '#8e24aa';
+            L.polygon(photoZone(lm), { color, weight: 1, fillOpacity: 0.25 }).addTo(landmarkLayer);
+            L.circleMarker([lm.lat, lm.lon], { radius: 6, color, fillOpacity: 1 })
+                .bindTooltip(`${lm.name} · ${lm.price}`, { permanent: true, direction: 'top', offset: [0, -6] })
+                .addTo(landmarkLayer);
+        });
+    } catch (error) {
+        console.error('Landmark Fetch Error:', error);
+    }
 }
 
 // --- UI Update Functions ---
@@ -372,6 +420,7 @@ function renderTelemetry(data) {
 
 function updateTelemetry(data) {
     renderTelemetry(data);
+    showRunningButton(data);
 
     if (map && data && data.is_connected) {
         const lat = data.lat;
@@ -448,6 +497,11 @@ function setUIConnected(connected) {
         if (!statusInterval) {
             statusInterval = setInterval(fetchStatus, 100); // Poll every 100 ms
         }
+        loadWorkshopButtons();
+        fetchLandmarks();
+        if (!landmarkInterval) {
+            landmarkInterval = setInterval(fetchLandmarks, 1000);
+        }
     } else {
         connectButton.hidden = false;
         disconnectButton.hidden = true;
@@ -460,6 +514,14 @@ function setUIConnected(connected) {
             clearInterval(statusInterval);
             statusInterval = null;
         }
+        if (landmarkInterval) {
+            clearInterval(landmarkInterval);
+            landmarkInterval = null;
+        }
+        if (landmarkLayer) {
+            landmarkLayer.clearLayers();
+        }
+        document.getElementById('workshopButtons').replaceChildren();
 
         // Clean up map marker
         if (droneMarker) {
@@ -468,9 +530,9 @@ function setUIConnected(connected) {
             console.log("Drone marker removed.");
         }
 
-        // Remove all other L.Marker instances (e.g., go-to markers)
+        // Remove all other L.Marker instances (e.g., go-to markers), but keep the waypoints
         map.eachLayer(function (layer) {
-            if (layer instanceof L.Marker) {
+            if (layer instanceof L.Marker && !layer.options.keep) {
                 map.removeLayer(layer);
             }
         });
