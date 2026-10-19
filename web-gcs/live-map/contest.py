@@ -267,8 +267,9 @@ class Contest:
 
     def _state_for(self, player_id, now):
         state = {"round": self._round_info(now),
-                 "others": [{"name": p["name"], "lat": p["lat"], "lon": p["lon"], "heading": p.get("heading")}
-                            for pid, p in self.players.items() if pid != player_id and pid in self._active(now)]}
+                 "others": [{"name": self.players[pid]["name"], "lat": self.players[pid]["lat"],
+                             "lon": self.players[pid]["lon"], "heading": self.players[pid].get("heading")}
+                            for pid in self._active(now) if pid != player_id]}
         if self.round["state"] == "idle":
             return state
         playing = player_id in self.start_positions
