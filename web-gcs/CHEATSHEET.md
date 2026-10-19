@@ -105,6 +105,10 @@ while True:
     time.sleep(1)
 ```
 
+### Trying it out
+
+Right-click the map → **Fly here** runs your `fly_to` on the point you clicked. It shows **■ Fly here** in the right-click menu until the plane arrives. Before you've written `fly_to` it waits forever: open the menu and click it again to stop it.
+
 ---
 
 ## Part 3: A mission from your clicks
@@ -122,9 +126,19 @@ def simple_mission(my_vehicle):
     ...
 ```
 
-- **One button runs at a time.** Pressing another button, or **Stop**, stops the one that's running. So do right-click "Go to this point", "Land here" and "Return to home".
+If the function also takes a `location`, the button goes in the **right-click menu** instead and gets the point you clicked (that's how **Fly here** works):
+
+```python
+@button("Fly here")
+def fly_here(my_vehicle, location):
+    ...
+```
+
+- A running button is green and shows **■**. **Click it again to stop it.**
+- **A button that flies the plane takes over from the one that was flying it.** Buttons that don't move the plane (like **Take photo**) run alongside. Right-click "Go to this point", "Land here" and "Return to home" take over too.
 - When a button's function stops, the plane keeps circling wherever it was last sent.
 - If your function crashes, the GCS says so; the details are in the backend terminal.
+- Too many buttons for the top bar? The rest are under **More ▾**, in the order they are in `workshop.py`.
 
 ### Waypoints you clicked
 
@@ -235,7 +249,7 @@ max(a, b)                    # the bigger one: max(distance, 200) is at least 20
 
 ## Part 6: Photographing landmarks
 
-**New:** `get_known_landmarks()`, `take_photo()`, picking from a list.
+**New:** `get_known_landmarks()`, `take_photo()`, picking from a list. Buttons already there: **Take photo** (top bar) and **Capture this landmark** (right-click near one, once `capture` is written).
 **From earlier:** `fly_to` (2), `@button` (3), `can_photograph` (4), `get_approach_point` (5).
 
 ```python

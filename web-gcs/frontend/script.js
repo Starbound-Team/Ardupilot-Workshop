@@ -286,28 +286,84 @@ function clearWaypoints() {
 }
 
 // --- Workshop buttons: one per @button function in workshop.py ---
+// Plain buttons go in the top bar (what doesn't fit goes under "More"), buttons whose function
+// takes a location go in the right-click menu. Clicking a running button stops it.
+let workshopButtons = []; // [{name, location}] in workshop.py order
+let contextMenuItems = []; // Right-click menu entries we added, to remove them again
+let shownRunning = ''; // The running buttons we last drew, to redraw only when that changes
+
 async function loadWorkshopButtons() {
-    const container = document.getElementById('workshopButtons');
     try {
         const response = await fetch(`${backendUrl}/api/buttons`);
-        const data = await response.json();
-        const pills = data.buttons.map(name => {
-            const pill = document.createElement('button');
-            pill.className = 'pill workshop-button';
-            pill.textContent = name;
-            pill.dataset.name = name;
-            pill.addEventListener('click', () => runWorkshopButton(name));
-            return pill;
-        });
-        const stop = document.createElement('button');
-        stop.className = 'pill stop-button';
-        stop.textContent = 'Stop';
-        stop.addEventListener('click', stopWorkshopButton);
-        container.replaceChildren(...pills, stop);
+        workshopButtons = (await response.json()).buttons;
     } catch (error) {
         console.error('Could not load the workshop buttons:', error);
-        container.replaceChildren();
+        workshopButtons = [];
     }
+    drawWorkshopButtons([]);
+}
+
+function buttonLabel(name, running) {
+    return running.includes(name) ? `■ ${name}` : name;
+}
+
+function drawWorkshopButtons(running) {
+    shownRunning = running.join('\n');
+    const pills = workshopButtons.filter(b => !b.location).map(b => {
+        const pill = document.createElement('button');
+        pill.className = 'pill workshop-button';
+        pill.classList.toggle('running', running.includes(b.name));
+        pill.textContent = buttonLabel(b.name, running);
+        pill.title = running.includes(b.name) ? 'Running: click to stop' : '';
+        pill.addEventListener('click', () => runWorkshopButton(b.name));
+        return pill;
+    });
+    document.getElementById('moreMenu').replaceChildren(); // Old pills, fitWorkshopButtons refills it
+    document.getElementById('workshopButtons').replaceChildren(...pills);
+    fitWorkshopButtons();
+
+    contextMenuItems.forEach(item => map.contextmenu.removeItem(item));
+    contextMenuItems = [];
+    const located = workshopButtons.filter(b => b.location);
+    if (located.length) {
+        contextMenuItems.push(map.contextmenu.insertItem({ separator: true }, 0));
+        located.slice().reverse().forEach(b => {
+            contextMenuItems.push(map.contextmenu.insertItem({
+                text: buttonLabel(b.name, running),
+                callback: e => runWorkshopButton(b.name, [e.latlng.lat, e.latlng.lng])
+            }, 0));
+        });
+    }
+}
+
+// Moves the pills that don't fit in the top bar into the "More" menu
+function fitWorkshopButtons() {
+    const bar = document.getElementById('workshopButtons');
+    const more = document.getElementById('moreButton');
+    const menu = document.getElementById('moreMenu');
+    const pills = [...bar.children, ...menu.children];
+    bar.replaceChildren(...pills);
+    more.hidden = true;
+    const overflowing = () => {
+        const right = bar.getBoundingClientRect().right - 4; // Minus the padding that leaves room for shadows
+        return pills.filter(pill => pill.getBoundingClientRect().right > right + 1);
+    };
+    if (overflowing().length) {
+        more.hidden = false;
+        // Showing "More" takes room too, so check again
+        menu.replaceChildren(...overflowing());
+    } else {
+        menu.replaceChildren();
+        menu.hidden = true;
+    }
+    more.classList.toggle('running', Boolean(menu.querySelector('.running'))); // Something under More is running
+}
+
+function runWorkshopButton(name, location = null) {
+    document.getElementById('moreMenu').hidden = true;
+    postJson('/api/buttons/run', { name, location, waypoints: waypoints.map(w => [w.lat, w.lng]) })
+        .then(data => showToast(data.message, "success"))
+        .catch(error => showToast(`Error: ${error.message}`, "error"));
 }
 
 function postJson(path, body) {
@@ -323,22 +379,11 @@ function postJson(path, body) {
     }));
 }
 
-function runWorkshopButton(name) {
-    postJson('/api/buttons/run', { name, waypoints: waypoints.map(w => [w.lat, w.lng]) })
-        .then(() => showToast(`${name} started`, "success"))
-        .catch(error => showToast(`Error: ${error.message}`, "error"));
-}
-
-function stopWorkshopButton() {
-    postJson('/api/buttons/stop', {})
-        .then(() => showToast("Stopped", "info"))
-        .catch(error => showToast(`Error: ${error.message}`, "error"));
-}
-
-function showRunningButton(data) {
-    document.querySelectorAll('.workshop-button').forEach(pill => {
-        pill.classList.toggle('running', Boolean(data && pill.dataset.name === data.running_button));
-    });
+function showRunningButtons(data) {
+    const running = (data && data.running_buttons) || [];
+    if (running.join('\n') !== shownRunning) {
+        drawWorkshopButtons(running);
+    }
     const error = data && data.button_error;
     if (error && error[0] !== lastButtonError) {
         lastButtonError = error[0];
@@ -489,7 +534,7 @@ function renderTelemetry(data) {
 
 function updateTelemetry(data) {
     renderTelemetry(data);
-    showRunningButton(data);
+    showRunningButtons(data);
 
     if (map && data && data.is_connected) {
         const lat = data.lat;
@@ -603,7 +648,8 @@ function setUIConnected(connected) {
         if (landmarkLayer) {
             landmarkLayer.clearLayers();
         }
-        document.getElementById('workshopButtons').replaceChildren();
+        workshopButtons = [];
+        drawWorkshopButtons([]);
 
         // Clean up map marker
         if (droneCone) {
@@ -712,6 +758,11 @@ async function fetchStatus() {
 }
 
 // --- Event Listeners ---
+document.getElementById('moreButton').addEventListener('click', () => {
+    const menu = document.getElementById('moreMenu');
+    menu.hidden = !menu.hidden;
+});
+window.addEventListener('resize', fitWorkshopButtons);
 document.getElementById('telemetryToggle').addEventListener('click', () => {
     document.getElementById('telemetry').classList.toggle('collapsed');
 });

@@ -34,6 +34,8 @@
 
         .nav-links {
             position: relative;
+            /* Above the telemetry panel and map controls, so the More menu opens over them */
+            z-index: 1100;
             flex: none;
             flex-wrap: wrap;
             gap: 8px 24px;
@@ -144,17 +146,54 @@
             box-shadow: none;
         }
 
+        /* The controls take the room between the logo and Join Us; the workshop buttons get what's left */
+        #controls {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        #workshopBar {
+            display: flex;
+            flex: 1 1 0;
+            gap: 10px;
+            min-width: 0;
+        }
         #workshopButtons {
-            display: contents;
+            display: flex;
+            flex: 0 1 auto;
+            gap: 10px;
+            min-width: 0;
+            /* Room for the hover lift and shadow, which overflow would cut off */
+            padding: 6px 4px 12px;
+            margin: -6px -4px -12px;
+            overflow: hidden;
+        }
+        #workshopButtons .pill,
+        #moreMenu .pill {
+            flex: none;
+        }
+        .more-wrap {
+            position: relative;
+            flex: none;
+        }
+        #moreMenu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 6px 20px rgba(26, 58, 122, 0.35);
         }
         .pill.running {
             background: #2e7d32;
         }
-        .pill.stop-button {
-            background: #c62828;
-        }
-        .pill.stop-button:hover {
-            background: #e53935;
+        .pill.running:hover:not(:disabled) {
+            background: #388e3c;
         }
         /* The plane: an arrow turned to its heading by script.js. No rotation animation,
            it would spin the long way round when the heading passes north */
@@ -332,8 +371,14 @@
                 <input type="number" id="altitudeInput" value="30" min="1">
                 <button id="takeoffButton" class="pill" disabled>Takeoff</button>
             </div>
-            <!-- One pill per @button function in workshop.py, plus Stop -->
-            <div id="workshopButtons"></div>
+            <!-- One pill per @button function in workshop.py; what doesn't fit goes under More -->
+            <div id="workshopBar">
+                <div id="workshopButtons"></div>
+                <div class="more-wrap">
+                    <button id="moreButton" class="pill" hidden>More ▾</button>
+                    <div id="moreMenu" hidden></div>
+                </div>
+            </div>
         </div>
         <!-- Navigation Links -->
         <div class="nav-items">
@@ -356,7 +401,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Bump ?v= whenever script.js changes, so browsers don't keep running a cached old copy -->
-    <script src="script.js?v=6" defer></script>
+    <script src="script.js?v=8" defer></script>
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>

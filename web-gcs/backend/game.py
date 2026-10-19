@@ -4,6 +4,7 @@ import collections
 import collections.abc
 collections.MutableMapping = collections.abc.MutableMapping # Fix for newer Python versions with dronekit
 import ctypes
+import inspect
 import logging
 import math
 import random
@@ -227,7 +228,15 @@ def button(text):
         def simple_mission(my_vehicle):
             ...
 
-    One button runs at a time: pressing another one (or Stop) stops the one that is running.
+    A function that also takes a location goes in the map's right-click menu instead,
+    and gets the point you clicked:
+
+        @button("Fly here")
+        def fly_here(my_vehicle, location):
+            ...
+
+    Several buttons can run at once, but only one flies the plane: a button that moves the plane
+    takes over from the one that was flying it. Click a running button again to stop it.
     """
     def add(function):
         buttons[text] = function
@@ -235,50 +244,119 @@ def button(text):
     return add
 
 
+def takes_location(function):
+    """True for a button function that goes in the right-click menu: (my_vehicle, location)."""
+    return len(inspect.signature(function).parameters) >= 2
+
+
 class Stopped(BaseException):
-    """Raised inside a running button's function when you press Stop or another button.
+    """Raised inside a running button's function when it is stopped or another button takes over the plane.
     A BaseException, so an "except Exception" in workshop.py doesn't swallow it."""
 
 
-_running = None # (text, thread) of the button that is running
+_running = {} # Button text -> thread, for the buttons that are running
+_flying = None # Thread that last moved the plane: a button's, or the GCS's for manual commands
+_control_lock = threading.Lock()
 _last_error = None # (number, message) of the latest button that crashed, for the GCS to show
 _errors = 0
 
 
-def running_button():
-    return _running[0] if _running and _running[1].is_alive() else None
+def running_buttons():
+    return [text for text, thread in list(_running.items()) if thread.is_alive()]
 
 
 def last_error():
     return _last_error
 
 
-def stop_button():
-    """Stops the running button's function, wherever it is (it finishes its current line first)."""
-    global _running
-    if not _running or not _running[1].is_alive():
-        _running = None
-        return
-    text, thread = _running
+def _raise_stopped(thread):
+    """Makes Stopped happen inside thread, wherever it is (it finishes its current line first)."""
     ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(thread.ident), ctypes.py_object(Stopped))
-    thread.join(timeout=3)
-    if thread.is_alive():
-        logging.warning(f"Button '{text}' didn't stop within 3 s")
-    _running = None
 
 
-def run_button(text, vehicle, waypoints=()):
-    """Stops whatever is running and starts the function behind the button text in its own thread."""
-    global _running, _clicked_waypoints
-    stop_button()
+def stop_button(text):
+    thread = _running.pop(text, None)
+    if thread and thread.is_alive():
+        _raise_stopped(thread)
+        thread.join(timeout=3)
+        if thread.is_alive():
+            logging.warning(f"Button '{text}' didn't stop within 3 s")
+
+
+def stop_all():
+    for text in list(_running):
+        stop_button(text)
+
+
+def take_control():
+    """Called whenever something moves the plane: whichever button was flying it before is stopped."""
+    global _flying
+    me = threading.current_thread()
+    with _control_lock:
+        previous, _flying = _flying, me
+    if previous is not None and previous is not me and previous.is_alive():
+        _raise_stopped(previous)
+
+
+class _Watched:
+    """
+    Stands in for my_vehicle in button functions. Everything passes straight through to the real object,
+    but anything that moves the plane calls take_control() first. These are all the DroneKit calls that can
+    command the plane; everything else (location, heading, parameters...) only reads.
+    """
+
+    def __init__(self, target, moves=(), settings=(), children=None):
+        object.__setattr__(self, '_target', target)
+        object.__setattr__(self, '_moves', set(moves))
+        object.__setattr__(self, '_settings', set(settings))
+        object.__setattr__(self, '_children', children or {})
+
+    def __getattr__(self, name):
+        value = getattr(self._target, name)
+        if name in self._moves:
+            def moving(*args, **kwargs):
+                take_control()
+                return value(*args, **kwargs)
+            return moving
+        if name in self._children:
+            return _Watched(value, **self._children[name])
+        return value
+
+    def __setattr__(self, name, value):
+        if name in self._settings:
+            take_control()
+        setattr(self._target, name, value)
+
+
+def _watched_vehicle(vehicle):
+    return _Watched(vehicle,
+                    moves={'simple_goto', 'simple_takeoff', 'wait_simple_takeoff', 'arm', 'disarm',
+                           'wait_for_mode', 'send_mavlink', 'reboot'},
+                    settings={'mode', 'armed', 'groundspeed', 'airspeed'},
+                    children={'commands': {'moves': {'upload'}, 'settings': {'next'}},
+                              'channels': {'settings': {'overrides'}}})
+
+
+def run_button(text, vehicle, waypoints=(), location=None):
+    """
+    Starts the function behind the button text in its own thread, or stops it if it is already running.
+    Returns True if it started.
+    """
+    global _clicked_waypoints
+    if text in running_buttons():
+        stop_button(text)
+        return False
     _clicked_waypoints = [LocationGlobalRelative(lat, lon, FLYING_ALTITUDE) for lat, lon in waypoints]
     function = buttons[text]
+    args = [_watched_vehicle(vehicle)]
+    if takes_location(function):
+        args.append(LocationGlobalRelative(location[0], location[1], FLYING_ALTITUDE))
 
     def run():
         global _last_error, _errors
         try:
             logging.info(f"Button '{text}' started")
-            function(vehicle)
+            function(*args)
             logging.info(f"Button '{text}' finished")
         except Stopped:
             logging.info(f"Button '{text}' stopped")
@@ -288,5 +366,6 @@ def run_button(text, vehicle, waypoints=()):
             _last_error = (_errors, f"{text}: {e!r}")
 
     thread = threading.Thread(target=run, daemon=True)
-    _running = (text, thread)
+    _running[text] = thread
     thread.start()
+    return True

@@ -170,7 +170,7 @@ def connect_drone():
 def disconnect_drone():
     """Disconnects the DroneKit vehicle object."""
     global vehicle
-    game.stop_button()
+    game.stop_all()
     game.use_vehicle(None)
     if vehicle:
         logging.info("Closing vehicle connection...")
@@ -223,7 +223,7 @@ def get_status():
                  "battery_level": batt_level,
                  "system_status": vehicle.system_status.state,
                  "ekf_ok": vehicle.ekf_ok if hasattr(vehicle, 'ekf_ok') else None, # EKF status
-                 "running_button": game.running_button(),
+                 "running_buttons": game.running_buttons(),
                  "camera_ready": game.camera_ready(),
                  "button_error": game.last_error(),
              }
@@ -264,6 +264,7 @@ def takeoff():
 
         target_altitude = float(data['altitude'])
         logging.info(f"Commanding takeoff to {target_altitude}m...")
+        game.take_control()
         take_off(vehicle, target_altitude)
 
         logging.info("Takeoff completed.")
@@ -289,7 +290,7 @@ def rtl():
     """Return to Launch (RTL) command."""
     global vehicle
     if vehicle:
-        game.stop_button()
+        game.take_control() # Manual commands take the plane over from a running button
         logging.info("Returning to Launch...")
         vehicle.mode = VehicleMode("RTL")
         return jsonify({"status": "success", "message": "Returning to Launch"})
@@ -310,7 +311,7 @@ def land():
 
         target_lat = float(data['lat'])
         target_lng = float(data['lng'])
-        game.stop_button()
+        game.take_control()
         logging.info(f"Landing at: lat={target_lat}, lon={target_lng}")
         land_at(vehicle, target_lat, target_lng)
         return jsonify({"status": "success", "message": "Landing"})
@@ -353,7 +354,7 @@ def goto_point():
             
         logging.info(f"Going to: lat={target_lat}, lon={target_lng}, alt={target_alt}m")
         
-        game.stop_button()
+        game.take_control()
 
         # Ensure vehicle is in GUIDED mode
         if vehicle.mode.name != "GUIDED":
@@ -386,12 +387,13 @@ def goto_point():
 # --- Buttons from workshop.py ---
 @app.route('/api/buttons')
 def list_buttons():
-    """The @button functions in workshop.py, in order, for the GCS to draw."""
-    return jsonify({"status": "success", "buttons": list(game.buttons)})
+    """The @button functions in workshop.py, in order. Those that take a location go in the right-click menu."""
+    return jsonify({"status": "success", "buttons": [
+        {"name": name, "location": game.takes_location(function)} for name, function in game.buttons.items()]})
 
 @app.route('/api/buttons/run', methods=['POST'])
 def run_button():
-    """Runs a @button function in the background, stopping the one that was running."""
+    """Runs a @button function in the background, or stops it if it is running."""
     if not vehicle:
         return jsonify({"status": "error", "message": "Vehicle not connected"}), 400
     data = request.get_json() or {}
@@ -399,14 +401,11 @@ def run_button():
     if name not in game.buttons:
         return jsonify({"status": "error", "message": f"No button called {name!r} in workshop.py"}), 400
     waypoints = [(float(lat), float(lng)) for lat, lng in data.get('waypoints', [])]
-    game.run_button(name, vehicle, waypoints)
-    return jsonify({"status": "success", "message": f"{name} started"})
-
-@app.route('/api/buttons/stop', methods=['POST'])
-def stop_button():
-    """Stops the running @button function. The plane keeps circling where it was going."""
-    game.stop_button()
-    return jsonify({"status": "success", "message": "Stopped"})
+    location = data.get('location')
+    if game.takes_location(game.buttons[name]) and not location:
+        return jsonify({"status": "error", "message": f"{name} needs a point: use it from the right-click menu"}), 400
+    started = game.run_button(name, vehicle, waypoints, location and (float(location[0]), float(location[1])))
+    return jsonify({"status": "success", "message": f"{name} {'started' if started else 'stopped'}"})
 
 @app.route('/api/landmarks')
 def landmarks():

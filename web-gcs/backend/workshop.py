@@ -81,9 +81,17 @@ def fly_to(my_vehicle, location):
         time.sleep(1)
 
 
+#The @button line puts a button in the GCS that runs the function below it.
+#This one takes a location too, so it goes in the right-click menu and gets the point you clicked.
+#It does nothing useful until fly_to is written (click it again to stop it).
+
+@button("Fly here")
+def fly_here(my_vehicle, location):
+    fly_to(my_vehicle, location)
+
+
 #---------- Part 3: A mission from your clicks ----------
 #Right-click the map and pick "Add waypoint" a few times, then press "Simple mission" in the GCS.
-#The @button line is what puts the button there: it runs the function below it.
 
 @button("Simple mission")
 def simple_mission(my_vehicle):
@@ -142,6 +150,13 @@ def get_approach_point(landmark, position):
 
 
 #---------- Part 6: Photographing a landmark ----------
+
+#Already working: for when you fly there yourself
+@button("Take photo")
+def photo(my_vehicle):
+    take_photo()
+
+
 #Rename it if you like, just change the name where you use it too
 
 def capture(my_vehicle, landmark):
@@ -155,6 +170,13 @@ def capture(my_vehicle, landmark):
     #    check often, the plane covers 20 m every second
 
     pass
+
+
+#Right-click near a landmark to capture it
+@button("Capture this landmark")
+def capture_here(my_vehicle, location):
+    landmark = min(get_known_landmarks(), key=lambda l: get_distance_meters(location, l.loc))
+    capture(my_vehicle, landmark)
 
 
 @button("Nearest first")
@@ -172,4 +194,5 @@ def nearest_first(my_vehicle):
 
 
 #---------- Part 7: Your own strategies ----------
-#Add as many @button functions as you like. Pressing a button stops the one that's running.
+#Add as many @button functions as you like. A button that flies the plane takes over from the one
+#that was flying it; one that doesn't (like Take photo) runs alongside.
