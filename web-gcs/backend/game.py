@@ -23,6 +23,7 @@ TURN_RADIUS = 35 # m, roughly how tightly the plane turns
 SWING_METERS = 55 # m, how far a turn swings the plane sideways (measured: a U-turn swings it 2 * 55 m)
 FIELD_OF_VIEW = 60 # degrees, the camera sees 30 degrees either side of the nose
 FLYING_ALTITUDE = 30 # m, landmarks and clicked waypoints are at this altitude
+PHOTO_COOLDOWN = 3 # s the camera needs after a photo that didn't count
 
 
 # ---------- Measuring ----------
@@ -177,27 +178,40 @@ def _photo_problem(position, heading, landmark):
     return None
 
 
+_camera_ready_at = 0 # time.time() when the camera can take the next photo
+
+
+def camera_ready():
+    return time.time() >= _camera_ready_at
+
+
 def take_photo():
     """
     Takes a photo from where the plane is now. Returns True if it sold, False if it didn't count
     (and prints why). The game checks the plane's own position and heading, not what your code thinks.
+    A photo that doesn't count costs you: the camera needs PHOTO_COOLDOWN seconds before the next one.
     """
+    global _camera_ready_at
     if _vehicle is None:
         print("Photo: not connected")
         return False
+    if not camera_ready():
+        print(f"Photo: camera not ready for another {_camera_ready_at - time.time():.1f} s")
+        return False
     position, heading = _vehicle.location.global_relative_frame, _vehicle.heading
     landmarks = _practice_landmarks()
-    if not landmarks:
-        print("Photo: nothing to photograph")
-        return False
     for landmark in landmarks:
         if _photo_problem(position, heading, landmark) is None:
             with _practice_lock:
                 _practice[_practice.index(landmark)] = _new_practice_landmark(landmark.loc)
             print(f"Photo: sold {landmark.name} for {landmark.price}")
             return True
+    _camera_ready_at = time.time() + PHOTO_COOLDOWN
+    if not landmarks:
+        print("Photo: nothing to photograph")
+        return False
     nearest = min(landmarks, key=lambda landmark: get_distance_meters(position, landmark.loc))
-    print(f"Photo: {_photo_problem(position, heading, nearest)}")
+    print(f"Photo: {_photo_problem(position, heading, nearest)}, camera ready again in {PHOTO_COOLDOWN} s")
     return False
 
 

@@ -439,8 +439,10 @@ function showPhotoRule(data) {
         }
     });
 
+    // Grey while the camera recharges after a photo that didn't count
     const points = conePoints(data.lat, data.lon, heading);
-    const style = { color: anyInCone ? ZONE_GREEN : '#e53935', weight: 1, fillOpacity: 0.15 };
+    const coneColor = data.camera_ready === false ? '#9e9e9e' : anyInCone ? ZONE_GREEN : '#e53935';
+    const style = { color: coneColor, weight: 1, fillOpacity: 0.15 };
     if (droneCone) {
         droneCone.setLatLngs(points).setStyle(style);
     } else {

@@ -224,6 +224,7 @@ def get_status():
                  "system_status": vehicle.system_status.state,
                  "ekf_ok": vehicle.ekf_ok if hasattr(vehicle, 'ekf_ok') else None, # EKF status
                  "running_button": game.running_button(),
+                 "camera_ready": game.camera_ready(),
                  "button_error": game.last_error(),
              }
              return jsonify({"status": "success", "data": status})

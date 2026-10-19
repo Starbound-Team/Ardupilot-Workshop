@@ -159,6 +159,8 @@ time.sleep(10)   # circle for 10 seconds
 **New:** directions, landmarks, `get_direction_degrees`, `get_angle_between`, `FIELD_OF_VIEW`.
 **From earlier:** `get_distance_meters` (2), `my_vehicle.heading` (1).
 
+Like a real inspection job, each landmark comes with a brief: *photograph its east side from 30 to 150 m away.* The camera is fixed to the plane and looks straight ahead, so to aim the camera you aim the whole plane.
+
 ### Directions
 
 A direction is a compass direction in degrees, going clockwise from north. `my_vehicle.heading` uses the same scale for where the nose points.
@@ -242,6 +244,7 @@ take_photo()                        # True if it sold; if not, it prints why
 ```
 
 - The game checks where your plane **really** is and where it **really** points, so check `can_photograph` first and only then `take_photo()`.
+- ⚠️ **A photo that doesn't count costs you:** the camera needs 3 seconds before the next one (the cone on the map turns grey). The photo zone only lasts about 6 seconds as you fly through it, so a wasted shot can cost you the pass.
 - Check often while you fly in: the plane covers 20 m every second, so `time.sleep(0.2)` rather than `time.sleep(1)`.
 - After a sale, the landmark disappears from your list.
 - Flown past it without a photo? Start over from the approach point. If you're very close to a landmark, fly away first.
