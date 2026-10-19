@@ -429,12 +429,23 @@ function updateTelemetry(data) {
         if (typeof lat === 'number' && typeof lon === 'number') {
             const droneLatLng = [lat, lon];
 
-            // Update Marker (existing logic)
+            // The plane is an arrow pointing where its nose points, like on the live map
             if (droneMarker) {
                 droneMarker.setLatLng(droneLatLng);
             } else {
-                droneMarker = L.marker(droneLatLng).addTo(map).bindPopup(`Drone Location`);
+                droneMarker = L.marker(droneLatLng, {
+                    icon: L.divIcon({
+                        className: 'drone-icon',
+                        html: '<svg viewBox="0 0 24 24"><path d="M12 2 L20 21 L12 17 L4 21 Z"/></svg>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    })
+                }).addTo(map).bindPopup(`Drone Location`);
                 console.log("Drone marker created at:", droneLatLng);
+            }
+            const arrow = droneMarker.getElement()?.querySelector('svg');
+            if (arrow) {
+                arrow.style.transform = `rotate(${data.heading ?? 0}deg)`;
             }
             if (!initialCenterSet) {
                 map.setView(droneLatLng, 17);
