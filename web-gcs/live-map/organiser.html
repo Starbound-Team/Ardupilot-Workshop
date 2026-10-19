@@ -135,6 +135,14 @@
             </table>
         </div>
         <div>
+            <h2>Planes</h2>
+            <table>
+                <thead><tr><th>Laptop</th><th>Port</th><th>State</th><th>Player</th></tr></thead>
+                <tbody id="planes"></tbody>
+            </table>
+            <div id="noHosts" class="stale">No laptop is hosting planes: start sitl_agent.py</div>
+        </div>
+        <div>
             <h2>Latest sales</h2>
             <table>
                 <thead><tr><th>Time</th><th>Who</th><th>Landmark</th><th>Price</th></tr></thead>
@@ -178,6 +186,10 @@
                 document.getElementById('round').textContent = describeRound(view.round);
                 document.getElementById('players').replaceChildren(...view.players.map(p =>
                     row([p.name, `${p.age} s ago`, p.playing ? 'yes' : '–', p.money], p.age > 10)));
+                const planeRows = view.hosts.flatMap(host => host.planes.map(plane =>
+                    row([`${host.ip}${host.alive ? '' : ' (gone)'}`, plane.port, plane.state, plane.player], !host.alive)));
+                document.getElementById('planes').replaceChildren(...planeRows);
+                document.getElementById('noHosts').hidden = view.hosts.some(host => host.alive);
                 document.getElementById('sales').replaceChildren(...view.sales.slice().reverse().map(s =>
                     row([clock(s.time), s.name, s.landmark, s.price])));
             } catch (error) {

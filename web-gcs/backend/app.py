@@ -25,7 +25,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # --- Global Variables ---
 vehicle = None
-connection_string = SITL_ADDRESS.strip() or 'udp:127.0.0.1:14550' # A plane on the organisers' laptop, or our own SITL
+connection_string = None # Where the plane is, decided on Connect (see plane_address)
+OWN_SITL = 'udp:127.0.0.1:14550' # SITL on this laptop (sim_vehicle.py's MAVProxy output)
+PLANE_WAIT = 90 # Seconds to wait for the game server to start our plane
 live_map_thread = None
 LIVE_MAP_INTERVAL = 0.5 # Seconds between telemetry updates sent to the game server
 
@@ -45,6 +47,39 @@ def gcs_id():
 
 
 GCS_ID = gcs_id()
+
+
+def plane_address():
+    """
+    Which plane to fly, like a real GCS: an address in SITL_ADDRESS always wins; otherwise ask the game
+    server for our plane (it starts one the first time, then it stays ours) and wait while it starts;
+    without a server, or if it has no plane for us, our own SITL.
+    """
+    if SITL_ADDRESS.strip():
+        return SITL_ADDRESS.strip()
+    if not GAME_SERVER_URL.strip():
+        return OWN_SITL
+    url = GAME_SERVER_URL.strip().rstrip('/') + '/api/sitl'
+    deadline = time.time() + PLANE_WAIT
+    while time.time() < deadline:
+        try:
+            request_plane = urllib.request.Request(url, data=json.dumps({"id": GCS_ID}).encode(),
+                                                   headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(request_plane, timeout=3) as response:
+                answer = json.load(response)
+        except Exception as e:
+            logging.warning(f"Game server doesn't answer ({e}): using our own SITL")
+            return OWN_SITL
+        if answer.get("state") == "ready":
+            logging.info(f"Our plane on the server: {answer['address']}")
+            return answer["address"]
+        if answer.get("state") == "none":
+            logging.warning(f"No plane from the game server ({answer.get('reason')}): using our own SITL")
+            return OWN_SITL
+        logging.info("Waiting for the game server to start our plane...")
+        time.sleep(1)
+    logging.warning("The game server's plane didn't start in time: using our own SITL")
+    return OWN_SITL
 
 # --- Flask App Setup ---
 app = Flask(__name__)
@@ -131,6 +166,7 @@ def connect_drone():
          logging.info("Already connected.")
          return jsonify({"status": "success", "message": "Already connected"})
 
+    connection_string = plane_address()
     logging.info(f"Attempting connection to {connection_string}...")
     try:
         # Connect to the Vehicle

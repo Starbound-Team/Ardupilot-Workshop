@@ -20,6 +20,7 @@ from collections import deque
 from flask import Flask, jsonify, request, send_from_directory
 
 from contest import Contest
+from sitl_pool import SitlPool
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.getLogger('werkzeug').setLevel(logging.WARNING) # Hide the log line for every telemetry update
@@ -38,6 +39,7 @@ ORGANISER_KEY = os.environ.get("ORGANISER_KEY") or secrets.token_hex(3)
 
 app = Flask(__name__)
 contest = Contest()
+planes = SitlPool()
 drones = {} # GCS id (or name, for senders without one) -> latest state of that drone
 drones_lock = threading.Lock() # Flask serves every request in its own thread
 next_color = 0
@@ -127,6 +129,30 @@ def take_photo():
     return jsonify({"status": "success", "sold": sold, "text": text, "game": contest.state_for(player_id, time.time())})
 
 
+@app.route('/api/sitl', methods=['POST'])
+def plane_for_player():
+    """A GCS asking for its plane: {id}. Answers ready + address, starting (ask again), or none + why."""
+    data = request.get_json(silent=True) or {}
+    player_id = str(data.get("id") or "")[:64]
+    if not player_id:
+        return jsonify({"status": "error", "message": "Missing id"}), 400
+    state, detail = planes.plane_for(player_id, time.time())
+    answer = {"status": "success", "state": state}
+    answer["address" if state == "ready" else "reason"] = detail
+    return jsonify(answer)
+
+
+@app.route('/api/agents/checkin', methods=['POST'])
+def agent_check_in():
+    """A SITL agent's check-in: {key, agent, ip, max, planes: {instance: state}}. Answers the planes to start."""
+    data, error = organiser_only()
+    if error:
+        return error
+    start = planes.agent_check_in(str(data.get("agent")), str(data.get("ip")), int(data.get("max", 0)),
+                                  data.get("planes") or {}, time.time())
+    return jsonify({"status": "success", "start": start})
+
+
 @app.route('/api/game')
 def game_view():
     """What the projector shows: round, public landmarks, leaderboard, latest sales."""
@@ -143,7 +169,13 @@ def organiser_only():
 @app.route('/api/organiser')
 def organiser_view():
     _, error = organiser_only()
-    return error or jsonify(contest.organiser_view(time.time()))
+    if error:
+        return error
+    view = contest.organiser_view(time.time())
+    with drones_lock:
+        names = {key: drone["name"] for key, drone in drones.items()}
+    view["hosts"] = planes.view(time.time(), names)
+    return jsonify(view)
 
 
 @app.route('/api/organiser/start', methods=['POST'])
