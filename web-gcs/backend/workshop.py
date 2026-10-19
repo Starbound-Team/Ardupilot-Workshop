@@ -12,6 +12,9 @@ PILOT_NAME = ""
 #Address of the organisers' laptop, we will write it on the board (e.g. "http://192.168.1.50:8080")
 #Leave it empty to practise on your own
 GAME_SERVER_URL = ""
+#Which simulator to fly: the address we give you (e.g. "tcp:192.168.1.50:5770"),
+#or leave it empty for the one running on your own laptop
+SITL_ADDRESS = ""
 
 
 #---------- Part 1: Takeoff (the Takeoff button in the GCS runs this) ----------

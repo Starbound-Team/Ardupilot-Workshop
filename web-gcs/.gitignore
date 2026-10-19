@@ -23,3 +23,5 @@ yarn-error.log*
 # Ardupilot / MAVLink stuff
 mav.*
 *.bin
+# Planes hosted by live-map/host_planes.py
+live-map/planes/

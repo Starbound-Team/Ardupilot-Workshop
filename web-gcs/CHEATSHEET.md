@@ -274,7 +274,7 @@ nearest = min(landmarks, key=lambda landmark: get_distance_meters(here, landmark
 
 ## Rounds
 
-Put the address from the board in `GAME_SERVER_URL` at the top of `workshop.py` (and your name in `PILOT_NAME`), save, and click **Connect**.
+Put the address from the board in `GAME_SERVER_URL` at the top of `workshop.py` (and your name in `PILOT_NAME`), save, and click **Connect**. If we gave you a plane on our laptop, put its address in `SITL_ADDRESS` too.
 
 - Outside a round you practise on landmarks of your own, as before.
 - **Countdown:** when we start a round, your plane flies itself to its start position (if it's in the air). Any button that was running stops.

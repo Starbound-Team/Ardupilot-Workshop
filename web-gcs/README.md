@@ -149,8 +149,15 @@ It prints three addresses: open the `localhost` one on the projector (F11 for fu
 ```python
 PILOT_NAME = "Maria"
 GAME_SERVER_URL = "http://192.168.1.50:8080"   # the address from the board
+SITL_ADDRESS = "tcp:192.168.1.50:5770"         # only if they fly a plane hosted on the organisers' laptop
 ```
 After saving, click **Connect**. The backend then sends the plane's position twice per second and gets the game back.
+
+**Hosting the planes** (so participants don't need ArduPilot installed): on a laptop with ArduPilot's plane built,
+```bash
+python live-map/host_planes.py 6
+```
+starts six SITL planes (instances 1 to 6, ports 5770, 5780, ...) and prints one address per plane for `SITL_ADDRESS`. Each plane takes one GCS at a time; a plane that stops is started again; Ctrl+C stops them all. One plane uses about 5% of a CPU core, and MAVLink is about 4 KB/s per plane over the network. It starts the planes directly, not with `sim_vehicle.py`, which would kill all the others (and running `sim_vehicle.py` on that laptop later kills these).
 
 **Running a round** (organiser page): set the minutes, the countdown and the landmark seed, then **Start test round** or **Start real round**. During the countdown every plane that is in the air flies itself to its start position; at the end of it each player has one private landmark, and the round is on. Photographing a landmark first reveals the next one (sometimes two, the second public to everyone). **Stop round** ends it early; **Reset** goes back to practice. The rules' numbers are in `RULES` at the top of `live-map/contest.py`.
 

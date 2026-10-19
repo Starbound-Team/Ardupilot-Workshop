@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # --- Global Variables ---
 vehicle = None
-connection_string = 'udp:127.0.0.1:14550' # Default SITL address
+connection_string = SITL_ADDRESS.strip() or 'udp:127.0.0.1:14550' # A plane on the organisers' laptop, or our own SITL
 live_map_thread = None
 LIVE_MAP_INTERVAL = 0.5 # Seconds between telemetry updates sent to the game server
 
