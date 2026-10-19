@@ -204,6 +204,16 @@
             stroke: #fff;
             stroke-width: 1.5;
         }
+        /* Where the plane is flying to: like a waypoint, with a crosshair instead of a number */
+        .target-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #1565c0;
+            color: #fff;
+            font-size: 14px;
+        }
         .waypoint-marker {
             display: flex;
             align-items: center;
@@ -399,7 +409,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Bump ?v= whenever script.js changes, so browsers don't keep running a cached old copy -->
-    <script src="script.js?v=9" defer></script>
+    <script src="script.js?v=10" defer></script>
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>

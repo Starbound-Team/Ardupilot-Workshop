@@ -12,6 +12,7 @@ const backendUrl = 'http://127.0.0.1:5000'; // Your Flask backend URL
 // --- Map Variables ---
 let map = null;
 let droneMarker = null;
+let targetMarker = null; // Where the plane is flying to right now (the backend's latest simple_goto)
 let initialCenterSet = false; // Track if map centered on first fix
 let flightPathCoordinates = []; // Array to store [lat, lon] points for the trail
 let flightPathPolyline = null;  // Leaflet Polyline object
@@ -144,13 +145,6 @@ function sendGoToCommand(lat, lng) {
         if (data.status === 'success') {
             showToast("Vehicle moving to selected location", "success");
             
-            // Add a marker at the target location
-            L.marker([lat, lng], {
-                icon: L.divIcon({
-                    className: 'goto-marker',
-                    html: '<i class="fas fa-crosshairs"></i>'
-                })
-            }).addTo(map);
         } else {
             showToast(`Command failed: ${data.message}`, "error");
         }
@@ -495,6 +489,30 @@ function showPhotoRule(data) {
     }
 }
 
+// One marker for where the plane is flying to, whoever sent it there; gone once nothing is
+function showTarget(target) {
+    if (!target) {
+        if (targetMarker) {
+            map.removeLayer(targetMarker);
+            targetMarker = null;
+        }
+        return;
+    }
+    if (targetMarker) {
+        targetMarker.setLatLng(target);
+    } else {
+        targetMarker = L.marker(target, {
+            zIndexOffset: -1000, // Under the plane and the waypoints
+            interactive: false,
+            icon: L.divIcon({
+                className: 'target-marker',
+                html: '<i class="fas fa-crosshairs"></i>',
+                iconSize: [24, 24]
+            })
+        }).addTo(map);
+    }
+}
+
 // --- UI Update Functions ---
 // function //updateStatus(message, isError = false) {
 //     statusDiv.innerHTML = `<strong>Status:</strong> ${message}`;
@@ -563,6 +581,7 @@ function updateTelemetry(data) {
             }
             lastTelemetry = data;
             showPhotoRule(data);
+            showTarget(data.target);
             if (!initialCenterSet) {
                 map.setView(droneLatLng, 17);
                 initialCenterSet = true;
@@ -656,6 +675,7 @@ function setUIConnected(connected) {
             map.removeLayer(droneCone);
             droneCone = null;
         }
+        showTarget(null);
         landmarkViews = [];
         lastTelemetry = null;
         if (droneMarker) {

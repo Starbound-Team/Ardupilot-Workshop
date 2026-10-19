@@ -259,6 +259,7 @@ _flying = None # Thread that last moved the plane: a button's, or the GCS's for 
 _control_lock = threading.Lock()
 _last_error = None # (number, message) of the latest button that crashed, for the GCS to show
 _errors = 0
+_target = None # Where the last simple_goto sent the plane, for the map; None after anything else moves it
 
 
 def running_buttons():
@@ -288,10 +289,23 @@ def stop_all():
         stop_button(text)
 
 
+def set_target(location):
+    global _target
+    _target = location
+
+
+def current_target(vehicle):
+    """(lat, lon) the plane is flying to, or None. Only GUIDED mode flies to a simple_goto target."""
+    if _target is None or vehicle is None or vehicle.mode.name != "GUIDED":
+        return None
+    return (_target.lat, _target.lon)
+
+
 def take_control():
     """Called whenever something moves the plane: whichever button was flying it before is stopped."""
-    global _flying
+    global _flying, _target
     me = threading.current_thread()
+    _target = None # A simple_goto sets it again right after
     with _control_lock:
         previous, _flying = _flying, me
     if previous is not None and previous is not me and previous.is_alive():
@@ -316,7 +330,10 @@ class _Watched:
         if name in self._moves:
             def moving(*args, **kwargs):
                 take_control()
-                return value(*args, **kwargs)
+                result = value(*args, **kwargs)
+                if name == 'simple_goto' and args:
+                    set_target(args[0])
+                return result
             return moving
         if name in self._children:
             return _Watched(value, **self._children[name])

@@ -225,6 +225,7 @@ def get_status():
                  "ekf_ok": vehicle.ekf_ok if hasattr(vehicle, 'ekf_ok') else None, # EKF status
                  "running_buttons": game.running_buttons(),
                  "camera_ready": game.camera_ready(),
+                 "target": game.current_target(vehicle),
                  "button_error": game.last_error(),
              }
              return jsonify({"status": "success", "data": status})
@@ -366,6 +367,7 @@ def goto_point():
         # Command the vehicle to move to the location
         target_location = LocationGlobalRelative(target_lat, target_lng, target_alt)
         vehicle.simple_goto(target_location)
+        game.set_target(target_location)
         
         return jsonify({
             "status": "success", 
