@@ -300,8 +300,9 @@ async function loadWorkshopButtons() {
     drawWorkshopButtons([]);
 }
 
-function buttonLabel(name, running) {
-    return running.includes(name) ? `■ ${name}` : name;
+// The right-click menu is plain text, so a running button gets a dot there like the pill's
+function menuLabel(name, running) {
+    return running.includes(name) ? `● ${name}` : name;
 }
 
 function drawWorkshopButtons(running) {
@@ -310,8 +311,13 @@ function drawWorkshopButtons(running) {
         const pill = document.createElement('button');
         pill.className = 'pill workshop-button';
         pill.classList.toggle('running', running.includes(b.name));
-        pill.textContent = buttonLabel(b.name, running);
-        pill.title = running.includes(b.name) ? 'Running: click to stop' : '';
+        // Running: green with a white dot, like Connected
+        if (running.includes(b.name)) {
+            const dot = document.createElement('span');
+            dot.className = 'status-dot';
+            pill.append(dot);
+        }
+        pill.append(b.name);
         pill.addEventListener('click', () => runWorkshopButton(b.name));
         return pill;
     });
@@ -326,7 +332,7 @@ function drawWorkshopButtons(running) {
         contextMenuItems.push(map.contextmenu.insertItem({ separator: true }, 0));
         located.slice().reverse().forEach(b => {
             contextMenuItems.push(map.contextmenu.insertItem({
-                text: buttonLabel(b.name, running),
+                text: menuLabel(b.name, running),
                 callback: e => runWorkshopButton(b.name, [e.latlng.lat, e.latlng.lng])
             }, 0));
         });

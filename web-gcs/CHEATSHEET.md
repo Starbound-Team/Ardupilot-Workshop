@@ -107,7 +107,7 @@ while True:
 
 ### Trying it out
 
-Right-click the map → **Fly here** runs your `fly_to` on the point you clicked. It shows **■ Fly here** in the right-click menu until the plane arrives (click it again to stop it early).
+Right-click the map → **Fly here** runs your `fly_to` on the point you clicked. It shows **● Fly here** in the right-click menu until the plane arrives (click it again to stop it early).
 
 ---
 
@@ -134,7 +134,7 @@ def fly_here(my_vehicle, location):
     ...
 ```
 
-- A running button is green and shows **■**. **Click it again to stop it.**
+- A running button is green with a white dot. **Click it again to stop it.**
 - **A button that flies the plane takes over from the one that was flying it.** Buttons that don't move the plane (like **Take photo**) run alongside. Right-click "Go to this point", "Land here" and "Return to home" take over too.
 - When a button's function stops, the plane keeps circling wherever it was last sent.
 - If your function crashes, the GCS says so; the details are in the backend terminal.
