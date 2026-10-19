@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS # Import CORS
 # Make sure all necessary DroneKit classes are imported
 from dronekit import connect, VehicleMode, APIException, LocationGlobalRelative, Command
+from pymavlink import mavutil
 import logging
 import math
 import json
@@ -412,6 +413,30 @@ def goto_point():
     except Exception as e:
         logging.error(f"Error during goto command: {e}", exc_info=True)
         return jsonify({"status": "error", "message": f"Error: {e}"}), 500
+
+@app.route('/api/reset_sitl', methods=['POST'])
+def reset_sitl():
+    """
+    Restarts the simulator with a forced reboot over MAVLink: the plane is back on its runway, disarmed,
+    with its parameters reset. The connection is closed so that Connect sets everything up again
+    (the GCS reconnects by itself after a few seconds).
+    """
+    global vehicle
+    if not vehicle:
+        return jsonify({"status": "error", "message": "Vehicle not connected"}), 400
+    game.stop_all()
+    game.take_control()
+    # MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN: param1 = 1 reboots; param6 = 20190226 forces it even while armed
+    vehicle.send_mavlink(vehicle.message_factory.command_long_encode(
+        0, 0, mavutil.mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 0, 1, 0, 0, 0, 0, 20190226, 0))
+    logging.info("SITL reset: reboot sent")
+    time.sleep(1)
+    try:
+        vehicle.close()
+    finally:
+        vehicle = None
+        game.use_vehicle(None)
+    return jsonify({"status": "success", "message": "Restarting the simulator"})
 
 # --- Buttons from workshop.py ---
 @app.route('/api/buttons')

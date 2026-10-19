@@ -75,6 +75,12 @@ function initMap() {
               sendLandCommand(lat, lng);
             }
           },
+          {
+            text: 'Reset SITL',
+            callback: function(e) {
+              resetSitl();
+            }
+          },
           '-', // Separator
           {
             text: 'Center map here',
@@ -232,6 +238,21 @@ function sendReturnToHome() {
         showToast(`Error: ${error.message}`, "error");
     }
     );
+}
+
+// Restarts the simulator (a forced reboot): the plane goes back to its runway. Then reconnects by itself.
+const RECONNECT_AFTER_RESET = 12000; // ms: the simulator needs about 10 s to come back with a GPS fix
+function resetSitl() {
+    if (!confirm('Restart the simulator? Your plane goes back to the runway, disarmed.')) {
+        return;
+    }
+    postJson('/api/reset_sitl', {})
+        .then(() => {
+            showToast("Restarting the simulator, reconnecting in a few seconds...", "info", RECONNECT_AFTER_RESET);
+            setUIConnected(false);
+            setTimeout(connectToDrone, RECONNECT_AFTER_RESET);
+        })
+        .catch(error => showToast(`Error: ${error.message}`, "error"));
 }
 
 function sendLandCommand(lat, lng) {

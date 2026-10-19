@@ -345,5 +345,6 @@ elapsed = time.time() - start   # seconds since start
 - **It never "arrives", it just circles.** A plane never passes exactly over the point. Check the distance against a threshold of about `60` metres, not `< 3` and not `== 0`. Anything under 50 m can leave it circling forever.
 - **It circles somewhere and won't come back.** That's what a plane does when it has nowhere else to go (RTL too). Send it a new point, or land it with `land_at()`.
 - **It worked, then stopped after I saved.** The backend restarted. Click **Connect** again.
+- **Something went badly wrong** (crashed, stuck in a strange mode)? Right-click the map → **Reset SITL**. The simulator restarts with your plane back on the runway, and the GCS reconnects by itself after a few seconds.
 - **My button doesn't show up.** Did you save and click **Connect** again? Is `@button("...")` right above the `def`?
 - **The photo never counts.** Print what `can_photograph` checks, one condition at a time. Most often the plane is on the wrong side or turned in too late.
