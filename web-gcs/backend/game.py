@@ -1,5 +1,8 @@
 #Everything in this file is already written for you: use it from workshop.py, but don't change it.
 #The cheat sheet says which part of the workshop needs what.
+import collections
+import collections.abc
+collections.MutableMapping = collections.abc.MutableMapping # Fix for newer Python versions with dronekit
 import ctypes
 import logging
 import math

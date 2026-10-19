@@ -22,6 +22,9 @@ let statusInterval = null; // To hold the interval timer for fetching status
 let landmarkInterval = null; // Timer for fetching the landmarks
 let waypoints = []; // [{lat, lng, marker}] added with right-click -> Add waypoint
 let landmarkLayer = null; // Landmarks and their photo zones
+let landmarkViews = []; // [{lm, zone, dot, label}] for colouring them as the plane moves
+let droneCone = null; // What the camera sees: FIELD_OF_VIEW wide, CONE_LENGTH long
+let lastTelemetry = null;
 let lastButtonError = null; // Number of the last button crash we showed
 
 // --- Map Initialization ---
@@ -344,6 +347,29 @@ function showRunningButton(data) {
 }
 
 // --- Landmarks: a dot plus its photo zone, the slice of ring on the side it must be photographed from ---
+// A photo counts when the plane is inside a landmark's slice and the landmark is inside the plane's cone,
+// the same rule as can_photograph. The slice turns green with the plane in it, the cone with a landmark
+// in it, and the label says "✓ photo" when both hold for the same landmark.
+const FIELD_OF_VIEW = 60; // degrees, as in game.py
+const CONE_LENGTH = 150; // m, the far edge of the photo zones
+const ZONE_GREEN = '#2e7d32';
+
+function distanceMeters(lat1, lon1, lat2, lon2) {
+    const north = (lat2 - lat1) * 111319.5;
+    const east = (lon2 - lon1) * 111319.5 * Math.cos(lat1 * Math.PI / 180);
+    return Math.hypot(north, east);
+}
+
+function directionDegrees(lat1, lon1, lat2, lon2) {
+    const north = (lat2 - lat1) * 111319.5;
+    const east = (lon2 - lon1) * 111319.5 * Math.cos(lat1 * Math.PI / 180);
+    return (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
+}
+
+function angleBetween(a, b) {
+    return Math.abs(((a - b) % 360 + 540) % 360 - 180);
+}
+
 function offsetLatLng(lat, lon, distance, direction) {
     const d = direction * Math.PI / 180;
     return [lat + distance * Math.cos(d) / 111319.5,
@@ -369,15 +395,56 @@ async function fetchLandmarks() {
             landmarkLayer = L.layerGroup().addTo(map);
         }
         landmarkLayer.clearLayers();
-        data.landmarks.forEach(lm => {
+        landmarkViews = data.landmarks.map(lm => {
             const color = lm.public ? '#f9a825' : '#8e24aa';
-            L.polygon(photoZone(lm), { color, weight: 1, fillOpacity: 0.25 }).addTo(landmarkLayer);
-            L.circleMarker([lm.lat, lm.lon], { radius: 6, color, fillOpacity: 1 })
+            const zone = L.polygon(photoZone(lm), { color, weight: 1, fillOpacity: 0.25 }).addTo(landmarkLayer);
+            const dot = L.circleMarker([lm.lat, lm.lon], { radius: 6, color, fillOpacity: 1 })
                 .bindTooltip(`${lm.name} · ${lm.price}`, { permanent: true, direction: 'top', offset: [0, -6] })
                 .addTo(landmarkLayer);
+            return { lm, color, zone, dot, label: null };
         });
+        showPhotoRule(lastTelemetry);
     } catch (error) {
         console.error('Landmark Fetch Error:', error);
+    }
+}
+
+function conePoints(lat, lon, heading) {
+    const points = [[lat, lon]];
+    for (let i = 0; i <= 8; i++) {
+        points.push(offsetLatLng(lat, lon, CONE_LENGTH, heading - FIELD_OF_VIEW / 2 + FIELD_OF_VIEW * i / 8));
+    }
+    return points;
+}
+
+function showPhotoRule(data) {
+    if (!data || typeof data.lat !== 'number' || typeof data.lon !== 'number') {
+        return;
+    }
+    const heading = data.heading ?? 0;
+    let anyInCone = false;
+    landmarkViews.forEach(view => {
+        const lm = view.lm;
+        const distance = distanceMeters(lm.lat, lm.lon, data.lat, data.lon);
+        const inZone = distance >= lm.inner && distance <= lm.outer
+            && angleBetween(directionDegrees(lm.lat, lm.lon, data.lat, data.lon), lm.approach_from) <= lm.view_width / 2;
+        const inCone = distance <= CONE_LENGTH
+            && angleBetween(directionDegrees(data.lat, data.lon, lm.lat, lm.lon), heading) <= FIELD_OF_VIEW / 2;
+        anyInCone ||= inCone;
+        view.zone.setStyle({ color: inZone ? ZONE_GREEN : view.color });
+        const label = `${lm.name} · ${lm.price}` + (inZone && inCone ? ' ✓ photo' : '');
+        if (label !== view.label) {
+            view.dot.setTooltipContent(label);
+            view.label = label;
+        }
+    });
+
+    const points = conePoints(data.lat, data.lon, heading);
+    const style = { color: anyInCone ? ZONE_GREEN : '#e53935', weight: 1, fillOpacity: 0.15 };
+    if (droneCone) {
+        droneCone.setLatLngs(points).setStyle(style);
+    } else {
+        droneCone = L.polygon(points, { ...style, interactive: false }).addTo(map);
     }
 }
 
@@ -447,6 +514,8 @@ function updateTelemetry(data) {
             if (arrow) {
                 arrow.style.transform = `rotate(${data.heading ?? 0}deg)`;
             }
+            lastTelemetry = data;
+            showPhotoRule(data);
             if (!initialCenterSet) {
                 map.setView(droneLatLng, 17);
                 initialCenterSet = true;
@@ -535,6 +604,12 @@ function setUIConnected(connected) {
         document.getElementById('workshopButtons').replaceChildren();
 
         // Clean up map marker
+        if (droneCone) {
+            map.removeLayer(droneCone);
+            droneCone = null;
+        }
+        landmarkViews = [];
+        lastTelemetry = null;
         if (droneMarker) {
             map.removeLayer(droneMarker);
             droneMarker = null;
