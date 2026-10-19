@@ -107,7 +107,7 @@ while True:
 
 ### Trying it out
 
-Right-click the map → **Fly here** runs your `fly_to` on the point you clicked. It shows **■ Fly here** in the right-click menu until the plane arrives. Before you've written `fly_to` it waits forever: open the menu and click it again to stop it.
+Right-click the map → **Fly here** runs your `fly_to` on the point you clicked. It shows **■ Fly here** in the right-click menu until the plane arrives (click it again to stop it early).
 
 ---
 

@@ -68,7 +68,8 @@ def fly_to(my_vehicle, location):
     #and if it misses it circles about 50 m around it, so "arrived" has to mean "within 60 m"
     arrived_distance = 60.0
 
-    while True:
+    #Wait until we have arrived: uncomment the two loop lines (while True and time.sleep) and fill in the rest
+    #while True:
         #Get the plane's current location here
 
         #Get the distance to location here
@@ -78,12 +79,12 @@ def fly_to(my_vehicle, location):
         #    break
 
         #We will check the distance every second
-        time.sleep(1)
+        #time.sleep(1)
 
 
 #The @button line puts a button in the GCS that runs the function below it.
 #This one takes a location too, so it goes in the right-click menu and gets the point you clicked.
-#It does nothing useful until fly_to is written (click it again to stop it).
+#It does nothing until fly_to is written.
 
 @button("Fly here")
 def fly_here(my_vehicle, location):
