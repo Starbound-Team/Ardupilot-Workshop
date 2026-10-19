@@ -14,8 +14,11 @@ let map = null;
 let droneMarker = null;
 let targetMarker = null; // Where the plane is flying to right now (the backend's latest simple_goto)
 let initialCenterSet = false; // Track if map centered on first fix
-let flightPathCoordinates = []; // Array to store [lat, lon] points for the trail
-let flightPathPolyline = null;  // Leaflet Polyline object
+// The trail: the last TRAIL_SECONDS of flight, drawn as TRAIL_PIECES lines that fade towards the old end
+const TRAIL_SECONDS = 120;
+const TRAIL_PIECES = 12;
+let trailPoints = []; // [{latLng, time}], oldest first
+let trailLines = []; // TRAIL_PIECES polylines, oldest piece first
 
 // --- State Variables ---
 let isConnected = false;
@@ -498,6 +501,36 @@ function showPhotoRule(data) {
     }
 }
 
+// --- Trail ---
+function addTrailPoint(latLng) {
+    const now = Date.now() / 1000;
+    const last = trailPoints[trailPoints.length - 1];
+    // Only when the plane moved, so sitting on the runway doesn't fill the trail
+    if (!last || last.latLng[0] !== latLng[0] || last.latLng[1] !== latLng[1]) {
+        trailPoints.push({ latLng, time: now });
+    }
+    while (trailPoints.length && trailPoints[0].time < now - TRAIL_SECONDS) {
+        trailPoints.shift();
+    }
+    if (!trailLines.length) {
+        for (let i = 0; i < TRAIL_PIECES; i++) {
+            trailLines.push(L.polyline([], { color: 'blue', weight: 3, interactive: false }).addTo(map));
+        }
+    }
+    // Split the trail into equal pieces, each sharing its end point with the next so there are no gaps
+    const size = Math.ceil(trailPoints.length / TRAIL_PIECES);
+    trailLines.forEach((line, i) => {
+        line.setLatLngs(trailPoints.slice(i * size, (i + 1) * size + 1).map(p => p.latLng));
+        line.setStyle({ opacity: 0.75 * (i + 1) / TRAIL_PIECES });
+    });
+}
+
+function clearTrail() {
+    trailLines.forEach(line => map.removeLayer(line));
+    trailLines = [];
+    trailPoints = [];
+}
+
 // One marker for where the plane is flying to, whoever sent it there; gone once nothing is
 function showTarget(target) {
     if (!target) {
@@ -633,28 +666,7 @@ function updateTelemetry(data) {
                  droneMarker.setPopupContent(`Drone Location<br>Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}<br>Alt: ${data.alt?.toFixed(2)}m | Mode: ${data.mode}`);
             }
 
-            // ----> Start: Add point to flight path trail <----
-            // Optional: Add a check to prevent adding points if the drone hasn't moved significantly
-            const lastCoord = flightPathCoordinates.length > 0 ? flightPathCoordinates[flightPathCoordinates.length - 1] : null;
-            // Simple check: Add if it's the first point or if lat/lon differs from the last point
-            if (!lastCoord || lastCoord[0] !== lat || lastCoord[1] !== lon) {
-
-                flightPathCoordinates.push(droneLatLng); // Add new coordinate to history
-
-                if (flightPathPolyline) {
-                    // If polyline exists, add the new point
-                    flightPathPolyline.addLatLng(droneLatLng);
-                } else {
-                    // If polyline doesn't exist, create it (needs at least one point)
-                    flightPathPolyline = L.polyline(flightPathCoordinates, {
-                        color: 'blue',  // Trail color
-                        weight: 3,       // Trail thickness
-                        opacity: 0.7     // Trail opacity
-                    }).addTo(map);
-                    console.log("Flight path polyline created.");
-                }
-            }
-            // ----> End: Add point to flight path trail <----
+            addTrailPoint(droneLatLng);
 
         } // End if valid lat/lon
     } // End if map and connected
@@ -670,13 +682,7 @@ function setUIConnected(connected) {
     // Enable/disable other command buttons here later
 
     if (connected) {
-        // ----> Start: Clear previous flight path on new connection <----
-        flightPathCoordinates = []; // Clear the history
-        if (flightPathPolyline) {
-            map.removeLayer(flightPathPolyline); // Remove old line from map
-            flightPathPolyline = null;
-        }
-        // ----> End: Clear previous flight path <----
+        clearTrail(); // Start a fresh trail on every connection
 
         //updateStatus('Connected');
         connectButton.hidden = true;
@@ -735,13 +741,7 @@ function setUIConnected(connected) {
         });
         initialCenterSet = false; // Reset centering flag
 
-        // ----> Start: Clear flight path on disconnect <----
-        flightPathCoordinates = []; // Clear the history
-        if (flightPathPolyline) {
-            map.removeLayer(flightPathPolyline); // Remove line from map
-            flightPathPolyline = null;
-        }
-         // ----> End: Clear flight path <----
+        clearTrail();
 
         // Optional: Reset map view to initial state on disconnect
         if (map) {
