@@ -6,12 +6,12 @@ import time
 from dronekit import VehicleMode, LocationGlobalRelative
 from game import *
 
-#Live map on the projector (optional)
+#The game and the map on the projector
 #Your name on the map, keep it short and different from everyone else's
 PILOT_NAME = ""
-#Address of the live map laptop, we will write it on the board (e.g. "http://192.168.1.50:8080")
-#Leave it empty to turn the live map off
-LIVE_MAP_URL = ""
+#Address of the organisers' laptop, we will write it on the board (e.g. "http://192.168.1.50:8080")
+#Leave it empty to practise on your own
+GAME_SERVER_URL = ""
 
 
 #---------- Part 1: Takeoff (the Takeoff button in the GCS runs this) ----------

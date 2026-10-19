@@ -1,5 +1,6 @@
 # Python / Flask stuff
 backend/venv/
+backend/.gcs_id
 __pycache__/
 *.pyc
 *.pyo

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organiser</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #0a0a23;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+            font-size: 15px;
+        }
+
+        h1 {
+            margin: 0 0 4px;
+            font-size: 24px;
+        }
+
+        h2 {
+            margin: 28px 0 10px;
+            font-size: 17px;
+            color: #9fb3d9;
+        }
+
+        #round {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        label {
+            color: #9fb3d9;
+        }
+
+        input {
+            width: 60px;
+            padding: 6px;
+            border: 1px solid #9fb3d9;
+            border-radius: 8px;
+            background: #fff;
+            color: #0d2b6b;
+            font: inherit;
+        }
+
+        button {
+            height: 40px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 999px;
+            background: #1a3a7a;
+            color: #fff;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #2a4a8a;
+        }
+
+        button.real {
+            background: #2e7d32;
+        }
+
+        button.stop {
+            background: #c62828;
+        }
+
+        table {
+            border-collapse: collapse;
+            min-width: 420px;
+        }
+
+        th,
+        td {
+            padding: 4px 14px 4px 0;
+            text-align: left;
+            font-variant-numeric: tabular-nums;
+        }
+
+        th {
+            color: #9fb3d9;
+            font-weight: 500;
+        }
+
+        .stale {
+            opacity: 0.4;
+        }
+
+        #error {
+            margin-top: 12px;
+            color: #ff8a80;
+        }
+
+        .columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Organiser</h1>
+    <div id="round">…</div>
+
+    <div class="controls">
+        <label>Minutes <input id="minutes" type="number" value="6" min="1"></label>
+        <label>Countdown (s) <input id="countdown" type="number" value="60" min="0"></label>
+        <label>Landmark seed <input id="seed" type="number" value="1" min="1"></label>
+        <button id="startTest">Start test round</button>
+        <button id="startReal" class="real">Start real round</button>
+        <button id="stop" class="stop">Stop round</button>
+        <button id="reset">Reset</button>
+    </div>
+    <div id="error"></div>
+
+    <div class="columns">
+        <div>
+            <h2>Players</h2>
+            <table>
+                <thead><tr><th>Name</th><th>Last seen</th><th>In round</th><th>Money</th></tr></thead>
+                <tbody id="players"></tbody>
+            </table>
+        </div>
+        <div>
+            <h2>Latest sales</h2>
+            <table>
+                <thead><tr><th>Time</th><th>Who</th><th>Landmark</th><th>Price</th></tr></thead>
+                <tbody id="sales"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const KEY = new URLSearchParams(location.search).get('key');
+
+        function row(cells, stale = false) {
+            // Names come from participants, so they're set as text, never as HTML
+            const tr = document.createElement('tr');
+            tr.classList.toggle('stale', stale);
+            for (const cell of cells) {
+                const td = document.createElement('td');
+                td.textContent = cell;
+                tr.append(td);
+            }
+            return tr;
+        }
+
+        function clock(seconds) {
+            const s = Math.max(0, Math.round(seconds));
+            return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+        }
+
+        function describeRound(round) {
+            switch (round.state) {
+                case 'idle': return 'No round: everyone is practising';
+                case 'countdown': return `${round.name} round starts in ${clock(round.starts_in)}: planes flying to their start positions`;
+                case 'running': return `${round.name} round running: ${clock(round.seconds_left)} left`;
+                case 'over': return `${round.name} round over`;
+            }
+        }
+
+        async function refresh() {
+            try {
+                const view = await (await fetch(`/api/organiser?key=${encodeURIComponent(KEY)}`)).json();
+                document.getElementById('round').textContent = describeRound(view.round);
+                document.getElementById('players').replaceChildren(...view.players.map(p =>
+                    row([p.name, `${p.age} s ago`, p.playing ? 'yes' : '–', p.money], p.age > 10)));
+                document.getElementById('sales').replaceChildren(...view.sales.slice().reverse().map(s =>
+                    row([clock(s.time), s.name, s.landmark, s.price])));
+            } catch (error) {
+                document.getElementById('round').textContent = "Can't reach the server";
+            }
+        }
+
+        async function send(path, body = {}) {
+            const response = await fetch(path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: KEY, ...body })
+            });
+            const data = await response.json();
+            document.getElementById('error').textContent = data.status === 'success' ? '' : data.message;
+            refresh();
+        }
+
+        function start(name) {
+            send('/api/organiser/start', {
+                name,
+                minutes: document.getElementById('minutes').value,
+                countdown: document.getElementById('countdown').value,
+                seed: document.getElementById('seed').value,
+            });
+        }
+
+        document.getElementById('startTest').addEventListener('click', () => start('test'));
+        document.getElementById('startReal').addEventListener('click', () => start('real'));
+        document.getElementById('stop').addEventListener('click', () => send('/api/organiser/stop'));
+        document.getElementById('reset').addEventListener('click', () => {
+            if (confirm('Reset clears this round\'s landmarks and money. Sure?')) send('/api/organiser/reset');
+        });
+
+        refresh();
+        setInterval(refresh, 1000);
+    </script>
+</body>
+
+</html>

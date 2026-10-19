@@ -91,10 +91,10 @@
             color: #888;
         }
 
+        /* No rotation animation: it would spin the long way round when a heading passes north */
         .drone-icon svg {
             width: 32px;
             height: 32px;
-            transition: transform 0.4s;
         }
 
         .drone-icon path {
@@ -104,6 +104,39 @@
 
         .drone-icon.stale {
             opacity: 0.35;
+        }
+
+        #round {
+            margin: 0 0 12px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        #round:empty {
+            display: none;
+        }
+
+        .money {
+            margin-left: auto;
+            font-size: 20px;
+            font-weight: bold;
+            color: #f9a825;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #sales {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        #sales div {
+            padding: 2px 0;
+        }
+
+        .leaflet-tooltip.landmark-label {
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .leaflet-tooltip.drone-label {
@@ -118,7 +151,9 @@
     <div id="map"></div>
     <div id="panel">
         <h1>Live map <span id="count"></span></h1>
+        <div id="round"></div>
         <div id="drone-list"></div>
+        <div id="sales"></div>
         <div id="offline">Can't reach the live map server</div>
         <div id="help">F: fit all drones · T: show/hide trails</div>
     </div>
@@ -134,7 +169,10 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        const layers = {}; // name -> { marker, trail }
+        const TRAIL_PIECES = 8; // Trails fade out towards the old end, drawn as this many pieces
+        const layers = {}; // drone key -> { marker, trail }
+        let game = null; // Latest /api/game: round, public landmarks, leaderboard, sales
+        const landmarkLayer = L.layerGroup().addTo(map);
         let showTrails = true;
         let fittedOnce = false;
 
@@ -154,7 +192,10 @@
                 .addTo(map);
             marker.getTooltip().getElement()?.style.setProperty('border-left-color', drone.color);
 
-            const trail = L.polyline([], { color: drone.color, weight: 3, opacity: 0.7 });
+            const trail = L.layerGroup();
+            for (let i = 0; i < TRAIL_PIECES; i++) {
+                L.polyline([], { color: drone.color, weight: 3, opacity: 0.7 * (i + 1) / TRAIL_PIECES }).addTo(trail);
+            }
             if (showTrails) trail.addTo(map);
             return { marker, trail };
         }
@@ -162,12 +203,14 @@
         function updateMap(drones) {
             const seen = new Set();
             for (const drone of drones) {
-                seen.add(drone.name);
-                layers[drone.name] ??= createDroneLayers(drone);
-                const { marker, trail } = layers[drone.name];
+                seen.add(drone.key);
+                layers[drone.key] ??= createDroneLayers(drone);
+                const { marker, trail } = layers[drone.key];
 
                 marker.setLatLng([drone.lat, drone.lon]);
-                trail.setLatLngs(drone.trail);
+                // Equal pieces, each sharing its end point with the next so there are no gaps
+                const size = Math.ceil(drone.trail.length / TRAIL_PIECES);
+                trail.getLayers().forEach((piece, i) => piece.setLatLngs(drone.trail.slice(i * size, (i + 1) * size + 1)));
 
                 const stale = drone.age > STALE_AFTER;
                 marker.getTooltip().setOpacity(stale ? 0.4 : 0.9);
@@ -179,11 +222,11 @@
             }
 
             // Drones that are gone from the server (after a reset)
-            for (const name of Object.keys(layers)) {
-                if (!seen.has(name)) {
-                    layers[name].marker.remove();
-                    layers[name].trail.remove();
-                    delete layers[name];
+            for (const key of Object.keys(layers)) {
+                if (!seen.has(key)) {
+                    layers[key].marker.remove();
+                    layers[key].trail.remove();
+                    delete layers[key];
                 }
             }
 
@@ -193,12 +236,54 @@
             }
         }
 
+        function clock(seconds) {
+            const s = Math.max(0, Math.round(seconds));
+            return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+        }
+
+        function describeRound(round) {
+            const name = round.name === 'real' ? 'Real round' : 'Test round';
+            switch (round.state) {
+                case 'countdown': return `${name} starts in ${clock(round.starts_in)}`;
+                case 'running': return `${name} · ${clock(round.seconds_left)} left`;
+                case 'over': return `${name} over`;
+                default: return '';
+            }
+        }
+
+        // Public landmarks: a dot and the slice of ring they must be photographed from
+        function offsetLatLng(lat, lon, distance, direction) {
+            const d = direction * Math.PI / 180;
+            return [lat + distance * Math.cos(d) / 111319.5,
+                    lon + distance * Math.sin(d) / (111319.5 * Math.cos(lat * Math.PI / 180))];
+        }
+
+        function updateLandmarks() {
+            landmarkLayer.clearLayers();
+            for (const lm of game?.landmarks ?? []) {
+                const zone = [];
+                for (let i = 0; i <= 12; i++) zone.push(offsetLatLng(lm.lat, lm.lon, lm.outer, lm.approach_from - lm.view_width / 2 + lm.view_width * i / 12));
+                for (let i = 12; i >= 0; i--) zone.push(offsetLatLng(lm.lat, lm.lon, lm.inner, lm.approach_from - lm.view_width / 2 + lm.view_width * i / 12));
+                L.polygon(zone, { color: '#f9a825', weight: 1, fillOpacity: 0.25 }).addTo(landmarkLayer);
+                L.circleMarker([lm.lat, lm.lon], { radius: 7, color: '#f9a825', fillOpacity: 1 })
+                    .bindTooltip(`${lm.name} · ${lm.price}`, { permanent: true, direction: 'top', offset: [0, -7], className: 'landmark-label' })
+                    .addTo(landmarkLayer);
+            }
+        }
+
         function updatePanel(drones) {
             document.getElementById('count').textContent = `(${drones.length})`;
+            document.getElementById('round').textContent = game ? describeRound(game.round) : '';
             const list = document.getElementById('drone-list');
             list.replaceChildren();
 
-            for (const drone of [...drones].sort((a, b) => a.name.localeCompare(b.name))) {
+            // During a round, the list is the leaderboard
+            const money = new Map((game?.leaderboard ?? []).map(entry => [entry.name, entry.money]));
+            const inRound = game && game.round.state !== 'idle';
+            const order = inRound
+                ? (a, b) => (money.get(b.name) ?? -1) - (money.get(a.name) ?? -1) || a.name.localeCompare(b.name)
+                : (a, b) => a.name.localeCompare(b.name);
+            for (const drone of [...drones].sort(order)) {
                 const row = document.createElement('div');
                 row.className = 'drone-row';
                 row.classList.toggle('stale', drone.age > STALE_AFTER);
@@ -224,8 +309,21 @@
                 const text = document.createElement('div');
                 text.append(name, info);
                 row.append(swatch, text);
+                if (inRound && money.has(drone.name)) {
+                    const amount = document.createElement('div');
+                    amount.className = 'money';
+                    amount.textContent = money.get(drone.name);
+                    row.append(amount);
+                }
                 list.append(row);
             }
+
+            const sales = document.getElementById('sales');
+            sales.replaceChildren(...(inRound ? game.sales : []).slice().reverse().map(sale => {
+                const line = document.createElement('div');
+                line.textContent = `${clock(sale.time)}  ${sale.name} sold ${sale.landmark} for ${sale.price}`;
+                return line;
+            }));
         }
 
         function fitAllDrones() {
@@ -252,6 +350,12 @@
                 const response = await fetch('/api/drones');
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const drones = await response.json();
+                try {
+                    game = await (await fetch('/api/game')).json();
+                } catch (error) {
+                    game = null;
+                }
+                updateLandmarks();
                 updateMap(drones);
                 updatePanel(drones);
                 document.getElementById('offline').style.display = 'none';

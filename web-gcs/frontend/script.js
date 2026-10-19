@@ -577,14 +577,82 @@ function fillGrid(list, rows) {
 }
 
 // Our own score for now; with the game server, also the leader and whoever is just ahead of us
+function clock(seconds) {
+    const s = Math.max(0, Math.round(seconds));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function describeRound(round) {
+    if (!round) return 'Practice';
+    const name = round.name === 'real' ? 'Real round' : 'Test round';
+    switch (round.state) {
+        case 'countdown': return `${name} in ${clock(round.starts_in)}`;
+        case 'running': return `${name} · ${clock(round.seconds_left)}`;
+        default: return `${name} over`;
+    }
+}
+
 function renderScore(data) {
     const score = data && data.score;
+    const round = data && data.round;
     document.getElementById('scoreBadge').textContent = score ? score.money : 0;
-    fillGrid(document.getElementById('scoreData'), [
-        ['Money', score ? score.money : '–'],
-        ['Photos sold', score ? score.photos : '–'],
-        ['Last sale', (score && score.last_sale) || '–'],
-    ]);
+    const rows = [['Round', describeRound(round)], ['Money', score ? score.money : '–']];
+    if (score && score.rank) {
+        rows.push(['Place', `${score.rank} of ${score.players}`]);
+        rows.push(['Leader', `${score.leader.name} ${score.leader.money}`]);
+        if (score.ahead) rows.push(['Ahead of you', `${score.ahead.name} ${score.ahead.money}`]);
+    }
+    rows.push(['Photos sold', score ? score.photos : '–'], ['Last sale', (score && score.last_sale) || '–']);
+    fillGrid(document.getElementById('scoreData'), rows);
+    announceRound(round);
+}
+
+// A toast when a round starts counting down, starts and ends
+let lastRoundState = null;
+function announceRound(round) {
+    const state = round ? `${round.name}:${round.state}` : 'practice';
+    if (lastRoundState !== null && state !== lastRoundState && round) {
+        const name = round.name === 'real' ? 'Real round' : 'Test round';
+        if (round.state === 'countdown') showToast(`${name} starting: your plane flies to its start position`, 'info', 6000);
+        if (round.state === 'running') showToast(`${name} started! Go!`, 'success', 5000);
+        if (round.state === 'over') showToast(`${name} over`, 'info', 6000);
+    }
+    lastRoundState = state;
+}
+
+// Everyone else's plane: a grey arrow with their name, under our own
+let otherMarkers = {}; // name -> marker
+function showOthers(others) {
+    const seen = new Set();
+    for (const other of others || []) {
+        seen.add(other.name);
+        let marker = otherMarkers[other.name];
+        if (!marker) {
+            // Names come from participants, so they're set as text, never as HTML
+            const label = document.createElement('span');
+            label.textContent = other.name;
+            marker = L.marker([other.lat, other.lon], {
+                zIndexOffset: -500,
+                interactive: false,
+                icon: L.divIcon({
+                    className: 'drone-icon other',
+                    html: '<svg viewBox="0 0 24 24"><path d="M12 2 L20 21 L12 17 L4 21 Z"/></svg>',
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                })
+            }).bindTooltip(label, { permanent: true, direction: 'right', offset: [12, 0], className: 'other-label' }).addTo(map);
+            otherMarkers[other.name] = marker;
+        }
+        marker.setLatLng([other.lat, other.lon]);
+        const arrow = marker.getElement()?.querySelector('svg');
+        if (arrow) arrow.style.transform = `rotate(${other.heading ?? 0}deg)`;
+    }
+    for (const name of Object.keys(otherMarkers)) {
+        if (!seen.has(name)) {
+            map.removeLayer(otherMarkers[name]);
+            delete otherMarkers[name];
+        }
+    }
 }
 
 // A toast for each new photo result: gold when it sold
@@ -641,6 +709,7 @@ function updateTelemetry(data) {
                 droneMarker.setLatLng(droneLatLng);
             } else {
                 droneMarker = L.marker(droneLatLng, {
+                    zIndexOffset: 1000, // Above everyone else's
                     icon: L.divIcon({
                         className: 'drone-icon',
                         html: '<svg viewBox="0 0 24 24"><path d="M12 2 L20 21 L12 17 L4 21 Z"/></svg>',
@@ -657,6 +726,7 @@ function updateTelemetry(data) {
             lastTelemetry = data;
             showPhotoRule(data);
             showTarget(data.target);
+            showOthers(data.others);
             if (!initialCenterSet) {
                 map.setView(droneLatLng, 17);
                 initialCenterSet = true;
@@ -724,6 +794,7 @@ function setUIConnected(connected) {
             droneCone = null;
         }
         showTarget(null);
+        showOthers([]);
         lastPhotoShown = null;
         landmarkViews = [];
         lastTelemetry = null;

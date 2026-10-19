@@ -5,11 +5,13 @@ import collections.abc
 collections.MutableMapping = collections.abc.MutableMapping # Fix for newer Python versions with dronekit
 import ctypes
 import inspect
+import json
 import logging
 import math
 import random
 import threading
 import time
+import urllib.request
 
 from dronekit import VehicleMode, LocationGlobalRelative, Command
 from pymavlink import mavutil
@@ -25,6 +27,7 @@ SWING_METERS = 55 # m, how far a turn swings the plane sideways (measured: a U-t
 FIELD_OF_VIEW = 60 # degrees, the camera sees 30 degrees either side of the nose
 FLYING_ALTITUDE = 30 # m, landmarks and clicked waypoints are at this altitude
 PHOTO_COOLDOWN = 3 # s the camera needs after a photo that didn't count
+GAME_AREA = (39.355, 22.922, 39.378, 22.968) # South, west, north, east: landmarks only appear over Volos
 
 
 # ---------- Measuring ----------
@@ -119,7 +122,7 @@ class Landmark:
         return f"Landmark({self.name!r}, price {self.price}, approach from {self.approach_from})"
 
 
-# Until the game server is running, you practise on landmarks of your own around where you took off.
+# Outside a round you practise on landmarks of your own around where you took off.
 # Photographing one moves it somewhere new, so there is always something to fly to.
 _vehicle = None
 _practice = []
@@ -134,12 +137,90 @@ def use_vehicle(vehicle):
     _vehicle = vehicle
 
 
+# ---------- The game server ----------
+# With GAME_SERVER_URL set, the GCS backend sends the plane's telemetry to the organisers' server twice a
+# second and keeps its answer here. From a round's countdown until the organisers reset it, landmarks,
+# photos and money come from the server; the rest of the time you practise on your own landmarks.
+_server_url = None
+_player_id = None
+_server_state = None # The server's latest answer: round, landmarks, score, other planes
+_server_state_time = 0
+_flown_to_start = None # The start position the plane was already sent to in this countdown
+
+
+def use_server(url, player_id):
+    """Called by the GCS backend when GAME_SERVER_URL is set."""
+    global _server_url, _player_id
+    _server_url, _player_id = url, player_id
+
+
+def set_server_state(state):
+    """Called by the GCS backend with every answer from the server."""
+    global _server_state, _server_state_time, _flown_to_start
+    _server_state, _server_state_time = state, time.time()
+    if state and state.get("round", {}).get("state") == "countdown" and state.get("start_position"):
+        _fly_to_start(tuple(state["start_position"]))
+    else:
+        _flown_to_start = None
+
+
+def _server():
+    """The server's latest answer, or None without a server or when it hasn't answered for a while."""
+    if _server_state is None or time.time() - _server_state_time > 5:
+        return None
+    return _server_state
+
+
+def _in_round():
+    state = _server()
+    return state is not None and state.get("round", {}).get("state") in ("countdown", "running", "over")
+
+
+def _fly_to_start(start):
+    """Before a round, the GCS sends the plane to its start position itself, taking over from any button."""
+    global _flown_to_start
+    if _vehicle is None or _flown_to_start == start:
+        return
+    location = _vehicle.location.global_relative_frame
+    if not _vehicle.armed or location.alt is None or location.alt < 10:
+        return # Still on the ground: it goes as soon as it has taken off
+    _flown_to_start = start
+    take_control()
+    target = LocationGlobalRelative(start[0], start[1], FLYING_ALTITUDE)
+    _vehicle.mode = VehicleMode("GUIDED")
+    _vehicle.simple_goto(target)
+    set_target(target)
+    logging.info("Round starting: flying to the start position")
+
+
+def round_info():
+    """The round for the GCS to show, or None while practising."""
+    return _server()["round"] if _in_round() else None
+
+
+def other_drones_for_map():
+    """Everyone else's planes for the GCS map: name, lat, lon, heading."""
+    state = _server()
+    return state.get("others", []) if state else []
+
+
+def _in_game_area(loc):
+    south, west, north, east = GAME_AREA
+    return south <= loc.lat <= north and west <= loc.lon <= east
+
+
 def _new_practice_landmark(center):
+    """400-900 m from center, inside GAME_AREA and 300 m from the others; anywhere in the area if that's
+    impossible (center near its edge, or the plane started somewhere else entirely)."""
     global _practice_count
     _practice_count += 1
-    for _ in range(100):
-        loc = get_location_from(center, _practice_rng.uniform(400, 900), _practice_rng.uniform(0, 360))
-        if all(get_distance_meters(loc, other.loc) > 300 for other in _practice):
+    south, west, north, east = GAME_AREA
+    for attempt in range(200):
+        if attempt < 100:
+            loc = get_location_from(center, _practice_rng.uniform(400, 900), _practice_rng.uniform(0, 360))
+        else:
+            loc = LocationGlobalRelative(_practice_rng.uniform(south, north), _practice_rng.uniform(west, east), 0)
+        if _in_game_area(loc) and all(get_distance_meters(loc, other.loc) > 300 for other in _practice):
             break
     return Landmark(f"Practice {_practice_count}", LocationGlobalRelative(loc.lat, loc.lon, FLYING_ALTITUDE),
                     approach_from=_practice_rng.randrange(0, 360, 5))
@@ -157,12 +238,16 @@ def _practice_landmarks():
 
 def get_known_landmarks():
     """The landmarks you can photograph right now, as a list of Landmark."""
+    if _in_round():
+        return [Landmark(l["name"], LocationGlobalRelative(l["lat"], l["lon"], FLYING_ALTITUDE), l["approach_from"],
+                         l["view_width"], l["inner"], l["outer"], l["price"], l["public"])
+                for l in _server().get("landmarks", [])]
     return _practice_landmarks()
 
 
 def get_other_drones():
-    """Everyone else's planes, as a list of (location, heading). Empty while you practise alone."""
-    return []
+    """Everyone else's planes, as a list of (location, heading). Empty without a game server."""
+    return [(LocationGlobalRelative(o["lat"], o["lon"], FLYING_ALTITUDE), o["heading"]) for o in other_drones_for_map()]
 
 
 def _photo_problem(position, heading, landmark):
@@ -197,7 +282,9 @@ def photo_log():
 
 
 def score():
-    """Your score so far, for the GCS. The game server will add the leader and whoever is just ahead of you."""
+    """Your score so far, for the GCS. In a round the server's, with your rank, the leader and who's ahead."""
+    if _in_round():
+        return _server().get("score")
     return {"money": _money, "photos": _photos_sold, "last_sale": _last_sale}
 
 
@@ -219,6 +306,8 @@ def take_photo():
         print(f"Photo: camera not ready for another {_camera_ready_at - time.time():.1f} s")
         return False
     position, heading = _vehicle.location.global_relative_frame, _vehicle.heading
+    if _in_round():
+        return _take_photo_on_server(position, heading)
     landmarks = _practice_landmarks()
     for landmark in landmarks:
         if _photo_problem(position, heading, landmark) is None:
@@ -239,6 +328,33 @@ def take_photo():
     print(f"Photo: {_photo_problem(position, heading, nearest)}, camera ready again in {PHOTO_COOLDOWN} s")
     _log_photo(False, f"Photo didn't count: {_photo_problem(position, heading, nearest)}")
     return False
+
+
+def _take_photo_on_server(position, heading):
+    """In a round the server judges the photo, from where the plane is now as the GCS sees it."""
+    global _camera_ready_at
+    if _server()["round"]["state"] != "running":
+        print("Photo: no round running")
+        return False
+    body = json.dumps({"id": _player_id, "lat": position.lat, "lon": position.lon, "heading": heading}).encode()
+    request = urllib.request.Request(_server_url + "/api/photo", data=body,
+                                     headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=2) as response:
+            answer = json.load(response)
+    except Exception as e:
+        print(f"Photo: couldn't reach the game server ({e})")
+        return False
+    sold, text = answer["sold"], answer["text"]
+    print(f"Photo: {text}")
+    if answer.get("game"):
+        set_server_state(answer["game"]) # A sold landmark leaves get_known_landmarks() straight away
+    if sold:
+        _log_photo(True, text)
+    elif text.startswith(("Photo didn't count", "Nothing to photograph")): # The server's camera needs a rest too
+        _camera_ready_at = time.time() + PHOTO_COOLDOWN
+        _log_photo(False, text)
+    return sold
 
 
 # ---------- Buttons ----------
@@ -327,12 +443,17 @@ def current_target(vehicle):
 
 
 def take_control():
-    """Called whenever something moves the plane: whichever button was flying it before is stopped."""
+    """
+    Called whenever something moves the plane: whichever button was flying it before is stopped.
+    Only button threads are ever stopped. When the GCS itself moves the plane (manual commands, flying
+    to the start position) the button is stopped, but the GCS's own threads never are.
+    """
     global _flying, _target
     me = threading.current_thread()
     _target = None # A simple_goto sets it again right after
     with _control_lock:
-        previous, _flying = _flying, me
+        previous = _flying
+        _flying = me if me in _running.values() else None
     if previous is not None and previous is not me and previous.is_alive():
         _raise_stopped(previous)
 

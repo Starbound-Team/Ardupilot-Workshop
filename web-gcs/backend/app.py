@@ -13,6 +13,8 @@ import json
 import socket
 import threading
 import urllib.request
+import uuid
+import os
 #workshop
 from workshop import *
 import game
@@ -24,22 +26,40 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 vehicle = None
 connection_string = 'udp:127.0.0.1:14550' # Default SITL address
 live_map_thread = None
-LIVE_MAP_INTERVAL = 0.5 # Seconds between telemetry updates sent to the live map
+LIVE_MAP_INTERVAL = 0.5 # Seconds between telemetry updates sent to the game server
+
+
+def gcs_id():
+    """A random id for this GCS, kept in a file, so the game server knows it's the same player
+    after a restart or a new Wi-Fi address."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.gcs_id')
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        new_id = uuid.uuid4().hex
+        with open(path, 'w') as f:
+            f.write(new_id)
+        return new_id
+
+
+GCS_ID = gcs_id()
 
 # --- Flask App Setup ---
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes, allowing requests from your frontend
 
 
-# --- Live Map ---
+# --- Game server (and the live map on the projector) ---
 def live_map_loop():
     """
-    Runs in a background thread and sends the vehicle's telemetry to the live map
-    laptop every LIVE_MAP_INTERVAL seconds. Does nothing if LIVE_MAP_URL is empty.
-    A failed send is logged once and retried, so the GCS keeps working without the map.
+    Runs in a background thread and sends the vehicle's telemetry to the game server every
+    LIVE_MAP_INTERVAL seconds; the answer is this player's view of the game, kept in game.py.
+    Does nothing if GAME_SERVER_URL is empty. A failed send is logged once and retried,
+    so the GCS keeps working without the server.
     """
     name = PILOT_NAME.strip() or socket.gethostname()
-    url = LIVE_MAP_URL.rstrip('/') + '/api/telemetry'
+    url = GAME_SERVER_URL.rstrip('/') + '/api/telemetry'
     map_reachable = True
 
     while True:
@@ -54,6 +74,7 @@ def live_map_loop():
                 continue # No GPS position yet
 
             payload = {
+                "id": GCS_ID,
                 "name": name,
                 "lat": location.lat,
                 "lon": location.lon,
@@ -69,25 +90,27 @@ def live_map_loop():
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            urllib.request.urlopen(request_to_map, timeout=1).close()
+            with urllib.request.urlopen(request_to_map, timeout=1) as response:
+                game.set_server_state(json.load(response).get("game"))
 
             if not map_reachable:
-                logging.info("Live map reachable again.")
+                logging.info("Game server reachable again.")
                 map_reachable = True
         except Exception as e:
             if map_reachable:
-                logging.warning(f"Could not send telemetry to the live map at {url}: {e}")
+                logging.warning(f"Could not reach the game server at {url}: {e}")
                 map_reachable = False
 
 
 def start_live_map():
-    """Starts the live map thread once, if a live map address is set."""
+    """Starts the game server thread once, if a game server address is set."""
     global live_map_thread
-    if not LIVE_MAP_URL.strip() or live_map_thread:
+    if not GAME_SERVER_URL.strip() or live_map_thread:
         return
+    game.use_server(GAME_SERVER_URL.rstrip('/'), GCS_ID)
     live_map_thread = threading.Thread(target=live_map_loop, daemon=True)
     live_map_thread.start()
-    logging.info(f"Sending telemetry to the live map at {LIVE_MAP_URL}")
+    logging.info(f"Playing on the game server at {GAME_SERVER_URL}")
 
 
 # --- API Endpoints ---
@@ -227,6 +250,8 @@ def get_status():
                  "camera_ready": game.camera_ready(),
                  "target": game.current_target(vehicle),
                  "score": game.score(),
+                 "round": game.round_info(),
+                 "others": game.other_drones_for_map(),
                  "photo_log": game.photo_log(),
                  "button_error": game.last_error(),
              }

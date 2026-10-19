@@ -134,23 +134,25 @@ You need **three** separate terminal windows open to run the full system: one fo
 
 > **Note:** the backend runs in Flask debug mode, so it restarts automatically every time you save `workshop.py`. The restart drops the vehicle connection, so click **Connect** again after each edit.
 
-## 📽️ Live Map (optional)
+## 📽️ Game server and live map
 
-A full screen map for the projector that shows every participant's drone live, each with its own colour and name. The workshop works without it.
+The organisers' laptop runs the game: rounds, landmarks, photos and money. It also shows a full screen map for the projector with every participant's plane, the public landmarks and the leaderboard. The workshop works without it: without a server address, everyone practises on landmarks of their own.
 
 **On the laptop at the front** (needs Flask, e.g. from the backend's venv):
 ```bash
 cd ardupilot-workshop/web-gcs/live-map
 python server.py
 ```
-It prints two addresses: open the `localhost` one on the projector (F11 for full screen), and write the other one on the board. Participants' laptops must be on the same network, and the laptop's firewall must allow port 8080.
+It prints three addresses: open the `localhost` one on the projector (F11 for full screen), keep the `organiser` one (it has a key in it) for starting rounds, and write the last one on the board. Participants' laptops must be on the same network, and the laptop's firewall must allow port 8080.
 
 **On every participant's laptop**, at the top of `backend/workshop.py`:
 ```python
 PILOT_NAME = "Maria"
-LIVE_MAP_URL = "http://192.168.1.50:8080"   # the address from the board
+GAME_SERVER_URL = "http://192.168.1.50:8080"   # the address from the board
 ```
-After saving, click **Connect**. The backend then sends the drone's position twice per second.
+After saving, click **Connect**. The backend then sends the plane's position twice per second and gets the game back.
+
+**Running a round** (organiser page): set the minutes, the countdown and the landmark seed, then **Start test round** or **Start real round**. During the countdown every plane that is in the air flies itself to its start position; at the end of it each player has one private landmark, and the round is on. Photographing a landmark first reveals the next one (sometimes two, the second public to everyone). **Stop round** ends it early; **Reset** goes back to practice. The rules' numbers are in `RULES` at the top of `live-map/contest.py`.
 
 **Useful while running it:**
 * On the map: `F` fits all drones on screen, `T` shows/hides the trails. A drone that stops reporting fades out after 5 seconds.

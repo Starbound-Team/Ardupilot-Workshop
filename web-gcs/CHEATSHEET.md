@@ -272,6 +272,19 @@ nearest = min(landmarks, key=lambda landmark: get_distance_meters(here, landmark
 
 ---
 
+## Rounds
+
+Put the address from the board in `GAME_SERVER_URL` at the top of `workshop.py` (and your name in `PILOT_NAME`), save, and click **Connect**.
+
+- Outside a round you practise on landmarks of your own, as before.
+- **Countdown:** when we start a round, your plane flies itself to its start position (if it's in the air). Any button that was running stops.
+- **Go:** you get one landmark only you know about. Press your strategy button.
+- Photographing a landmark **first** shows you the next one (sometimes two: the second is shown to everyone). Every photographed landmark appears on everyone's map, and each later photo of it pays less.
+- A landmark nobody has photographed yet slowly gains value.
+- The **Score** panel shows the round, your place, the leader and whoever is just ahead of you. Other planes are the grey arrows.
+
+---
+
 ## Part 7: Your strategies
 
 **New:** flying time, other planes.
