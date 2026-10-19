@@ -345,7 +345,7 @@ function fitWorkshopButtons() {
     bar.replaceChildren(...pills);
     more.hidden = true;
     const overflowing = () => {
-        const right = bar.getBoundingClientRect().right - 4; // Minus the padding that leaves room for shadows
+        const right = bar.getBoundingClientRect().right;
         return pills.filter(pill => pill.getBoundingClientRect().right > right + 1);
     };
     if (overflowing().length) {
