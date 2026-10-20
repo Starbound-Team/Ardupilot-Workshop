@@ -40,7 +40,7 @@ Before you begin, ensure you have the following installed on your system (tested
 1.  **Git:** For cloning the repository (`sudo apt update && sudo apt install git -y`).
 2.  **Python 3:** (Version 3.8+ recommended) and `pip` (`sudo apt install python3 python3-pip -y`).
 3.  **Python Virtual Environment:** (`sudo apt install python3-venv -y` or usually included with Python).
-4.  **ArduPilot SITL:** You need a working ArduPilot SITL setup. Follow the official ArduPilot documentation: [Setting up SITL](https://ardupilot.org/dev/docs/setting-up-sitl-on-linux.html)
+4.  **ArduPilot SITL (only without a game server):** at the workshop the game server gives you a plane. To fly without one, you need your own SITL: see the [main README](../README.md#fallback-running-your-own-plane-sitl).
 5.  **(Optional but Recommended):** Node.js and npm for potential future frontend development (`sudo apt install nodejs npm -y` or preferably use [NVM](https://github.com/nvm-sh/nvm)).
 
 ## 🚀 Getting Started
@@ -77,13 +77,13 @@ cd ..
 ```
 
 ### 3. Setup Frontend
-Currently, the frontend consists of simple HTML, CSS, and JavaScript files. No build step is required yet.
+The frontend is plain HTML, CSS and JavaScript in `frontend/`, served by the backend itself. No build step, nothing to install.
 
 ## ▶️ Running the Application
 
-You need **three** separate terminal windows open to run the full system: one for SITL, one for the backend server, and one for the frontend server.
+You need **two** terminal windows: one for SITL and one for the backend. With a game server (`GAME_SERVER_URL` in `workshop.py`) the plane runs on the organisers' laptop, so skip step 1 and use one.
 
-1.  **Start ArduPilot SITL**
+1.  **Start ArduPilot SITL** (only without a game server)
     * Open a **new terminal** and start SITL, either inside the Docker container or from a native ArduPilot checkout (see the [main README](../README.md)). Both commands start the plane at the workshop field in Volos.
 
         Docker or native:
@@ -93,46 +93,31 @@ You need **three** separate terminal windows open to run the full system: one fo
     * Wait for SITL to initialize completely (you should see GPS coordinates appearing). **Leave this terminal running.**
 
 2.  **Start the Backend Server**
-    * Open a **second terminal**
-    * Navigate to the project's backend directory: `cd ardupilot-workshop/web-gcs/backend`
+    * Open a terminal in the project's backend directory: `cd ardupilot-workshop/web-gcs/backend`
 
-    * Activate the virtual environment: `source venv/bin/activate`
-
-    * Run the Flask application:
+    * Run the Flask application with the virtual environment's Python:
     ```bash
-    python app.py
+    venv/bin/python app.py          # Linux
+    venv\Scripts\python app.py      # Windows
     ```
 
-    *The backend server should start, typically on `http://127.0.0.1:5000`. **Leave this terminal running.**
+    * It serves the GCS on `http://localhost:5000`. **Leave this terminal running.**
 
-3. **Start the Frontend Server**
-
-    * Open a **third terminal.**
-
-    * Navigate to the project's frontend directory: `cd ardupilot-workshop/web-gcs/frontend`
-
-    * Start Python's simple HTTP server to serve the HTML/JS/CSS files:
-    ```bash
-    python3 -m http.server 8000
-    ```
-
-    * This server will host the frontend on `http://localhost:8000`. **Leave this terminal running.**
-
-4. **Access the Web GCS**
+3. **Access the Web GCS**
 
     Open your web browser (e.g., Firefox, Chrome).
-    Navigate to `http://localhost:8000`.
+    Navigate to `http://localhost:5000`.
 
 ## 🕹️ Usage
 
-1.  Ensure SITL, the backend, and the frontend servers are all running.
+1.  Ensure the backend is running (and SITL, without a game server).
 2.  Click the **"Connect to SITL"** button in the web interface.
 3.  Observe the **Status** section update. If successful, telemetry data should start appearing.
 4.  Use the **"Get Status"** button to manually refresh telemetry (it also polls automatically).
 5.  Use the **"Disconnect"** button to close the connection to the vehicle.
 6.  Use **Takeoff** to arm and climb, then right-click the map for Go-to, waypoints, RTL and Land here, and use the workshop buttons in the top bar. A plane can't stop in the air: RTL and Go-to make it circle above the point until you send something else.
 
-> **Note:** the backend runs in Flask debug mode, so it restarts automatically every time you save `workshop.py`. The restart drops the vehicle connection, so click **Connect** again after each edit.
+> **Note:** the backend runs in Flask debug mode, so it restarts automatically every time you save `workshop.py`. The restart drops the vehicle connection, and the page reconnects by itself (it tells a restart from a lost plane by an id that is new on every start). If `workshop.py` has a mistake, the backend keeps running without the plane, the page shows the line, and the save that fixes it reconnects.
 
 ## 📽️ Game server and live map
 

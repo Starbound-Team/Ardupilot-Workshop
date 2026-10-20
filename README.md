@@ -3,7 +3,7 @@
 <div align="center">
 
 ![ArduPilot](https://img.shields.io/badge/ArduPilot-SITL-blue?style=for-the-badge&logo=drone&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-Compatible-FCC624?style=for-the-badge&logo=linux&logoColor=black)
 ![Windows](https://img.shields.io/badge/Windows-Compatible-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 
@@ -11,29 +11,80 @@
 
 ## 📖 Overview
 
-Welcome to the **ArduPilot Workshop** repository! This comprehensive guide provides everything you need to get started with ArduPilot's Software-in-the-Loop (SITL) simulation environment. Whether you're a beginner exploring drone development or an experienced developer testing flight algorithms, this workshop will help you set up and run ArduPilot simulations on your system.
+Welcome to the **ArduPilot Workshop**! You fly a simulated ArduPilot plane over Volos from a web Ground Control Station (GCS), and you teach it new tricks in Python with DroneKit: take off, fly to points, fly missions, and finally hunt landmarks to photograph in a game against everyone else in the room.
+
+The planes run on the organisers' laptops, so **all you need is Python**. You don't have to install ArduPilot or Docker.
 
 ### ✨ What You'll Learn
-- 🐳 **Docker-based Setup**: Quick and isolated ArduPilot environment
-- 🛠️ **Native Installation**: Direct system installation for advanced users
-- 🎮 **SITL Simulation**: Run virtual drone missions without hardware
-- 🗺️ **Mission Planning**: Visualize and control your virtual aircraft
+- ✈️ **Flight modes, arming and takeoff** of an ArduPilot plane
+- 🧭 **Flying with code**: going to points, missions, bearings and distances
+- 📸 **Writing your own strategy** for the photo game, as buttons in your GCS
+- 🗺️ **How a GCS talks to a drone** (MAVLink, through DroneKit)
 
 ---
 
-# Sitl installation steps (docker):
+# What you need
 
-**Official Docker installation guide:**
-Refer to the official Docker documentation for your distribution: [Docker Engine Install Guide](https://docs.docker.com/engine/install/)
+- A laptop with **Windows** or **Linux**
+- **Python 3**
+  - Windows: install it from [python.org](https://www.python.org/downloads/) and tick **"Add python.exe to PATH"** on the installer's first screen.
+  - Debian/Ubuntu: `sudo apt install python3 python3-venv`
+  - Arch: `sudo pacman -S python`
+- **git**, or download this repository as a ZIP from GitHub (green **Code** button → **Download ZIP**) and unpack it
 
-**Post-installation (all distributions):**
-To manage Docker as a non-root user, add your user to the docker group:
+# Setup (once)
+
+Get the code:
+```bash
+git clone https://github.com/starbound-team/ardupilot-workshop.git
+cd ardupilot-workshop/web-gcs/backend
+```
+
+Make a virtual environment for it and install the packages it needs:
+
+**Linux:**
+```bash
+python3 -m venv venv
+venv/bin/python -m pip install -r requirements.txt
+```
+
+**Windows** (CMD or PowerShell):
+```powershell
+python -m venv venv
+venv\Scripts\python -m pip install -r requirements.txt
+```
+
+Calling the venv's own Python like this means you never need to "activate" the venv (which PowerShell refuses by default).
+
+# On the day
+
+1. **Your name and the game server.** At the top of `web-gcs/backend/workshop.py`, fill in `PILOT_NAME` (short, different from everyone else's) and `GAME_SERVER_URL` (we write it on the board). Leave `SITL_ADDRESS` empty.
+
+2. **Start the GCS**, in a terminal in `web-gcs/backend`, and leave it running:
+   - Linux: `venv/bin/python app.py`
+   - Windows: `venv\Scripts\python app.py`
+
+3. **Open [http://localhost:5000](http://localhost:5000)** in your browser and click **Connect**. The game server starts a plane for you (a few seconds the first time), and it stays yours for the whole workshop.
+
+From here on, follow [`web-gcs/CHEATSHEET.md`](web-gcs/CHEATSHEET.md) part by part. [`web-gcs/README.md`](web-gcs/README.md) has more on the GCS and on the game server.
+
+> Saving `workshop.py` restarts the backend, and the page reconnects by itself. If the file has a mistake, the page says on which line; fix it and save.
+
+---
+
+# Fallback: running your own plane (SITL)
+
+Only needed if the game server can't give you a plane, or to practise at home. When `GAME_SERVER_URL` is empty or the server has no plane for you, **Connect** uses a SITL running on your own laptop, so start it before clicking Connect. There are two ways to get one: Docker (easier, especially on Windows) or a native ArduPilot build (Linux).
+
+## With Docker
+
+**Install Docker:** follow the [Docker Engine Install Guide](https://docs.docker.com/engine/install/) for your distribution, then let your user run it without `sudo`:
 ```bash
 sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-**For Arch-based distributions:**
+On Arch-based distributions:
 ```bash
 sudo pacman -S docker
 sudo usermod -aG docker $USER
@@ -42,37 +93,24 @@ sudo systemctl enable docker
 sudo systemctl start docker
 ```
 
-**For Windows:**
-
-Install Docker Desktop: [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-
-Install VcXsrv: [VcXsrv](https://sourceforge.net/projects/vcxsrv/)
-
-Configure VcXsrv to allow access from the Docker container:
-1. Start XLaunch with the following options:
+**On Windows:**
+1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+2. Enable host networking: Docker Desktop settings → **Resources** → **Network** → **Enable host networking**.
+3. Install [VcXsrv](https://sourceforge.net/projects/vcxsrv/) (it shows the SITL map and console windows), and start XLaunch with:
    - Multiple windows
    - Display number: -1
    - Start no client
    - Disable access control
 
-2. Enable host networking in Docker Desktop:
-   - Open Docker Desktop settings
-   - Go to the "Resources" tab
-    - Select "Network"
-    - Enable "Host networking"
----
+**Start the container:**
 
-# Running the Docker image
-
-**Linux:**
+Linux:
 ```bash
 xhost +local:
 docker run --rm -it --name ardupilot-sitl --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -u "$(id -u):$(id -g)" manraf/ardupilot-sb:latest bash
 ```
 
-**Windows:**
-
-CMD:
+Windows, CMD:
 ```cmd
 docker run --rm -it ^
   --name ardupilot-sitl ^
@@ -83,7 +121,7 @@ docker run --rm -it ^
   bash
 ```
 
-PowerShell/Terminal:
+Windows, PowerShell:
 ```powershell
 docker run --rm -it `
   --name ardupilot-sitl `
@@ -94,62 +132,64 @@ docker run --rm -it `
   bash
 ```
 
-# Connecting to the Docker container
-```bash
-docker exec -it ardupilot-sitl bash
-```
+A second terminal into the same container: `docker exec -it ardupilot-sitl bash`
 
-# Running the simulation (Docker)
-
-Inside the container, start a plane at the workshop field in Volos, where the mission waypoints are:
+**Start the plane**, inside the container, at the workshop field in Volos:
 ```bash
 sim_vehicle.py -v plane -l 39.360886,22.945749,0,0 --console --map
 ```
-> **TODO (plane branch):** the image's `/ardupilot/workshop/run.sh` still starts a copter. Until the image is updated, use the command above; the first run may need to build the plane, which takes a few minutes.
+> **TODO (image):** the image's `/ardupilot/workshop/run.sh` still starts a copter. Until the image is updated, use the command above; the first run may need to build the plane, which takes a few minutes.
 
-# Sitl installation steps (native):
+## Native (Linux)
 
-***Clone the repository from the official ArduPilot github***
+Clone ArduPilot:
 ```bash
 git clone https://github.com/ArduPilot/ardupilot.git --recurse-submodules
+cd ardupilot
 ```
 
-***Setup the virtual environment***
-
-*Navigate to the clone repository, then Tools/environment_install, and execute the script that matches your distro*
-
-For example on ubuntu (and ubuntu-based distros):
+Install its prerequisites with the script in `Tools/environment_install` that matches your distribution:
 ```bash
-bash install-prereqs-ubuntu.sh
+# Ubuntu and Ubuntu-based
+Tools/environment_install/install-prereqs-ubuntu.sh
 . ~/.profile
-```
-On arch
-```bash
-bash install-prereqs-arch.sh
+# Arch
+Tools/environment_install/install-prereqs-arch.sh
 ```
 
-***Configure the board and the vehicle type (Navigate to the initial directory first)***
+Build the plane:
 ```bash
 ./waf configure --board sitl
 ./waf plane
 ```
 
-***Run the simulation***
-
-For the first time:
+Start it, the first time with `-w` (wipes the saved parameters), afterwards without:
 ```bash
 cd Tools/autotest/
 python sim_vehicle.py -w -v plane -l 39.360886,22.945749,0,0 --console --map
 ```
-To run subsequently, avoid the -w flag as it is not needed
 
-`-l` places the plane at the workshop field in Volos, and its last number is the direction the runway points (0 = north). Without it SITL starts in Australia, and the workshop missions will try to fly to Greece.
+`-l` places the plane at the workshop field in Volos; its last number is the direction the runway points (0 = north). Without it SITL starts in Australia, and the workshop's landmarks are in Greece.
+
+---
 
 # Troubleshooting
+
+**`python` isn't found, or opens the Microsoft Store (Windows)**
+Python wasn't added to PATH. Use `py` instead of `python` in the commands above (e.g. `py -m venv venv`), or reinstall Python with **"Add python.exe to PATH"** ticked.
+
+**`No module named venv` / `ensurepip is not available` (Debian/Ubuntu)**
+Install `python3-venv` (`sudo apt install python3-venv`), delete the half-made `venv` folder and make it again.
+
+**The page doesn't load, or says "The backend isn't answering"**
+The terminal running `app.py` was closed or the backend crashed: its last lines say why. Start it again; an open page reconnects by itself.
+
+**Connect takes long, then fails**
+The game server had no plane for you and there's no SITL of your own. Check `GAME_SERVER_URL` against the board and tell an organiser.
 
 **The map and console windows don't open (Docker)**
 - Linux: if `xhost +local:` fails with "command not found", install it (`sudo pacman -S xorg-xhost` on Arch, `sudo apt install x11-xserver-utils` on Debian/Ubuntu), run it again, then start the container.
 - Windows: XLaunch must already be running, with "Disable access control" ticked, before you run `docker run`. If you closed it, start it again and restart the container.
 
-**The drone starts in Australia, or the simple mission never finishes**
+**Your own plane starts in Australia**
 SITL was started without the workshop location. Add `-l 39.360886,22.945749,0,0` to `sim_vehicle.py`.

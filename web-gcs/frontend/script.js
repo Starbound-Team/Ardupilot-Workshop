@@ -7,7 +7,7 @@ const altitudeInput = document.getElementById('altitudeInput');
 const telemetryList = document.getElementById('telemetryData');
 const telemetryState = document.getElementById('telemetryState');
 
-const backendUrl = 'http://127.0.0.1:5000'; // Your Flask backend URL
+const backendUrl = ''; // The backend serves this page, so its API is on the same address
 
 // --- Map Variables ---
 let map = null;
@@ -31,6 +31,11 @@ let droneCone = null; // What the camera sees: FIELD_OF_VIEW wide, CONE_LENGTH l
 let lastTelemetry = null;
 let lastPhotoShown = null; // Number of the newest photo result we have shown as a toast
 let lastButtonError = null; // Number of the last button crash we showed
+let backendStart = null; // Which run of the backend we are connected to; a different one means it restarted
+let reconnecting = false; // Reconnecting by ourselves after a backend restart
+let lastStatusOk = 0; // When the backend last answered a status request
+let warnedNoBackend = false; // Shown the "backend isn't answering" toast since then
+const NO_BACKEND_WARNING = 3000; // ms without an answer before that toast
 
 // --- Map Initialization ---
 function initMap() {
@@ -860,6 +865,7 @@ function setUIConnected(connected) {
     } else {
         connectButton.hidden = false;
         disconnectButton.hidden = true;
+        backendStart = null;
 
         //updateStatus('Disconnected');
         updateTelemetry(null); // Clear telemetry text
@@ -916,9 +922,9 @@ function setUIConnected(connected) {
 
 
 // --- API Call Functions ---
-async function connectToDrone() {
+async function connectToDrone(message = "Connecting to SITL (this can take up to a minute)...") {
     //updateStatus('Attempting connection...');
-    showToast("Connecting to SITL (this can take up to a minute)...", "info", 5000);
+    showToast(message, "info", 5000);
     connectButton.disabled = true;
     try {
         const response = await fetch(`${backendUrl}/api/connect`, { method: 'POST' });
@@ -964,11 +970,21 @@ async function fetchStatus() {
         const response = await fetch(`${backendUrl}/api/status`, { method: 'GET' });
         const result = await response.json();
 
+        lastStatusOk = Date.now();
+        warnedNoBackend = false;
         if (response.ok && result.status === 'success') {
             // Call updateTelemetry which now handles both text and map
             updateTelemetry(result.data);
 
-            if (!result.data.is_connected) {
+            if (result.data.is_connected) {
+                backendStart = result.data.backend_start;
+            } else if (backendStart && result.data.backend_start !== backendStart) {
+                if (result.data.workshop_error) {
+                    showWorkshopError(result.data); // Wait for the save that fixes it, then reconnect
+                } else {
+                    reconnectAfterRestart();
+                }
+            } else if (!reconnecting) {
                 console.warn("Backend reports vehicle disconnected.");
                 setUIConnected(false);
                 //updateStatus("Connection lost (reported by backend)", true);
@@ -978,10 +994,28 @@ async function fetchStatus() {
         }
     } catch (error) {
         console.error('Status Fetch Error:', error);
-        //updateStatus(`Status Fetch Error: ${error.message}`, true);
-        // If fetching fails, you might want to stop polling or indicate stale data
-        // clearInterval(statusInterval); statusInterval = null; // Example: stop polling on error
+        // The backend restarts for a moment on every save of workshop.py; much longer means it stopped
+        if (!warnedNoBackend && Date.now() - lastStatusOk > NO_BACKEND_WARNING) {
+            warnedNoBackend = true;
+            showToast("The backend isn't answering: look at its terminal (a mistake in workshop.py?)", "error", 8000);
+        }
     }
+}
+
+// A workshop.py with a mistake in it: shown once per save
+let shownWorkshopError = null;
+function showWorkshopError(data) {
+    if (shownWorkshopError === data.backend_start) return;
+    shownWorkshopError = data.backend_start;
+    showToast(`workshop.py has a mistake, ${data.workshop_error}. Fix it and save (details in the backend terminal)`, "error", 10000);
+}
+
+// Saving workshop.py restarts the backend, which drops the plane: connect again by ourselves
+async function reconnectAfterRestart() {
+    if (reconnecting) return;
+    reconnecting = true;
+    await connectToDrone("workshop.py changed: reconnecting...");
+    reconnecting = false;
 }
 
 // --- Event Listeners ---
@@ -999,7 +1033,7 @@ if (window.matchMedia('(max-width: 600px)').matches) {
     document.querySelectorAll('.panel').forEach(panel => panel.classList.add('collapsed'));
 }
 
-connectButton.addEventListener('click', connectToDrone);
+connectButton.addEventListener('click', () => connectToDrone());
 disconnectButton.addEventListener('click', disconnectFromDrone);
 statusButton.addEventListener('click', fetchStatus); // Manual status fetch
 takeoffButton.addEventListener('click', sendTakeOff); // Manual status fetch
