@@ -64,7 +64,7 @@ Calling the venv's own Python like this means you never need to "activate" the v
    - Linux: `venv/bin/python app.py`
    - Windows: `venv\Scripts\python app.py`
 
-3. **Open [http://localhost:5000](http://localhost:5000)** in your browser and click **Connect**. The game server starts a plane for you (a few seconds the first time), and it stays yours for the whole workshop.
+3. **Open [http://localhost:5000](http://localhost:5000)** in your browser and click **Connect**. The game server starts a plane for you (a few seconds the first time), and it stays yours for the whole workshop. The arrow next to Connect chooses which plane: **Server plane** (this one) or **Local SITL** (one on your own laptop, see below); your choice is remembered.
 
 From here on, follow [`web-gcs/CHEATSHEET.md`](web-gcs/CHEATSHEET.md) part by part. [`web-gcs/README.md`](web-gcs/README.md) has more on the GCS and on the game server.
 
@@ -74,7 +74,7 @@ From here on, follow [`web-gcs/CHEATSHEET.md`](web-gcs/CHEATSHEET.md) part by pa
 
 # Fallback: running your own plane (SITL)
 
-Only needed if the game server can't give you a plane, or to practise at home. When `GAME_SERVER_URL` is empty or the server has no plane for you, **Connect** uses a SITL running on your own laptop, so start it before clicking Connect. There are two ways to get one: Docker (easier, especially on Windows) or a native ArduPilot build (Linux).
+Only needed if the game server can't give you a plane, or to practise at home. Choose **Local SITL** with the arrow next to **Connect** (it's the default when `GAME_SERVER_URL` is empty). Connect then uses a SITL started with `sim_vehicle.py` if one is running; otherwise it starts one itself, if it finds ArduPilot with the plane built (it looks in `$ARDUPILOT_DIR`, next to `sim_vehicle.py` on your PATH, `~/.ardupilot/ardupilot` and `~/ardupilot`). A plane Connect started itself can also be put down at your start position when a round begins. There are two ways to get ArduPilot: Docker (easier, especially on Windows) or a native ArduPilot build (Linux).
 
 ## With Docker
 
@@ -185,7 +185,7 @@ Install `python3-venv` (`sudo apt install python3-venv`), delete the half-made `
 The terminal running `app.py` was closed or the backend crashed: its last lines say why. Start it again; an open page reconnects by itself.
 
 **Connect takes long, then fails**
-The game server had no plane for you and there's no SITL of your own. Check `GAME_SERVER_URL` against the board and tell an organiser.
+With **Server plane** chosen, Connect keeps asking the game server for about a minute and a half before it gives up (the toasts say what it's waiting for). Check `GAME_SERVER_URL` against the board, check the board's address opens in your browser, and tell an organiser. To fly anyway, choose **Local SITL** with the arrow next to Connect.
 
 **The map and console windows don't open (Docker)**
 - Linux: if `xhost +local:` fails with "command not found", install it (`sudo pacman -S xorg-xhost` on Arch, `sudo apt install x11-xserver-utils` on Debian/Ubuntu), run it again, then start the container.

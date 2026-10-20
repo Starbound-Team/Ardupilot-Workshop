@@ -25,3 +25,5 @@ mav.*
 *.bin
 # Planes hosted by live-map/host_planes.py
 live-map/planes/
+# The plane the GCS backend starts on this laptop (backend/local_sitl.py)
+backend/.sitl/

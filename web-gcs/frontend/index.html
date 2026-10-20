@@ -108,6 +108,76 @@
             background: #388e3c;
         }
 
+        /* Connect and its arrow look like one pill split in two */
+        .connect-wrap {
+            position: relative;
+            display: inline-flex;
+            flex: none;
+        }
+        .connect-wrap[hidden] {
+            display: none;
+        }
+        .connect-wrap > .pill:hover:not(:disabled) {
+            transform: none; /* The halves would come apart */
+        }
+        #connectButton {
+            padding-right: 14px;
+            border-radius: 999px 0 0 999px;
+        }
+        #connectChoiceButton {
+            padding: 0 14px 0 12px;
+            border-left: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 0 999px 999px 0;
+        }
+        #connectChoiceButton svg {
+            transition: transform 0.2s;
+        }
+        #connectChoiceButton[aria-expanded="true"] svg {
+            transform: rotate(180deg);
+        }
+        #connectMenu {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 100%;
+            padding: 8px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 6px 20px rgba(26, 58, 122, 0.35);
+        }
+        #connectMenu[hidden] {
+            display: none;
+        }
+        .connect-option {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 12px;
+            background: transparent;
+            color: #0d2b6b;
+            font: inherit;
+            font-weight: 600;
+            text-align: left;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .connect-option:hover {
+            background: #e3eaf7;
+        }
+        .connect-option small {
+            font-weight: 400;
+            opacity: 0.75;
+        }
+        .connect-option.selected {
+            background: #2e7d32;
+            color: #fff;
+        }
         .status-dot {
             width: 9px;
             height: 9px;
@@ -420,7 +490,18 @@
         </li>
         <!-- GCS controls -->
         <div id="controls">
-            <button id="connectButton" class="pill disconnected"><span class="status-dot"></span>Connect to SITL</button>
+            <!-- Connect, and next to it the arrow that chooses which plane: the server's or a SITL on this laptop -->
+            <div id="connectWrap" class="connect-wrap">
+                <button id="connectButton" class="pill disconnected"><span class="status-dot"></span>Connect to SITL</button>
+                <button id="connectChoiceButton" class="pill disconnected" title="Which plane to connect to"
+                    aria-haspopup="true" aria-expanded="false">
+                    <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 4.5 6 8.5 10 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div id="connectMenu" hidden>
+                    <button class="connect-option" data-source="server">Server plane<small>on the organisers' laptop</small></button>
+                    <button class="connect-option" data-source="local">Local SITL<small>on this laptop</small></button>
+                </div>
+            </div>
             <button id="disconnectButton" class="pill connected" title="Click to disconnect" hidden><span class="status-dot"></span>Connected</button>
             <button id="statusButton" class="pill" disabled>Get Status</button>
             <div class="pill-group">
@@ -466,7 +547,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Bump ?v= whenever script.js changes, so browsers don't keep running a cached old copy -->
-    <script src="script.js?v=19" defer></script>
+    <script src="script.js?v=20" defer></script>
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>
