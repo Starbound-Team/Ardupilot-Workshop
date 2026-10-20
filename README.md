@@ -23,52 +23,47 @@ The planes run on the organisers' laptops, so **all you need is Python**. You do
 
 ---
 
-# What you need
+# Setup and start
 
-- A laptop with **Windows** or **Linux**
-- **Python 3**
-  - Windows: install it from [python.org](https://www.python.org/downloads/) and tick **"Add python.exe to PATH"** on the installer's first screen.
-  - Debian/Ubuntu: `sudo apt install python3 python3-venv`
-  - Arch: `sudo pacman -S python`
-- **git**, or download this repository as a ZIP from GitHub (green **Code** button → **Download ZIP**) and unpack it
+All you need is a laptop with **Windows** or **Linux** and an internet connection. Paste one line into a terminal:
 
-# Setup (once)
-
-Get the code:
-```bash
-git clone https://github.com/starbound-team/ardupilot-workshop.git
-cd ardupilot-workshop/web-gcs/backend
+**Windows** (open **PowerShell** from the Start menu):
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/starbound-team/ardupilot-workshop/main/setup/start.ps1 | iex"
 ```
-
-Make a virtual environment for it and install the packages it needs:
 
 **Linux:**
 ```bash
-python3 -m venv venv
-venv/bin/python -m pip install -r requirements.txt
+curl -LsSf https://raw.githubusercontent.com/starbound-team/ardupilot-workshop/main/setup/start.sh | sh
 ```
 
-**Windows** (CMD or PowerShell):
-```powershell
-python -m venv venv
-venv\Scripts\python -m pip install -r requirements.txt
-```
+It gets everything the GCS needs into **`ardupilot-workshop` in your home folder** (its own Python too, so it doesn't matter which Python you have, or whether you have one), starts the GCS and opens it in your browser. Leave its window open: closing it stops the GCS. On Linux it also gets a small plane simulator (SITL) for your laptop, in case the organisers' planes can't be reached.
 
-Calling the venv's own Python like this means you never need to "activate" the venv (which PowerShell refuses by default).
+**Run it again whenever you like**, e.g. to start the GCS the next day: it only does what is still missing, and never touches your code. Once it's installed you can also start it from the folder: double-click `setup\start.bat` (Windows) or run `sh ~/ardupilot-workshop/setup/start.sh` (Linux).
 
-# On the day
+Then:
 
-1. **Your name and the game server.** At the top of `web-gcs/backend/workshop.py`, fill in `PILOT_NAME` (short, different from everyone else's) and `GAME_SERVER_URL` (we write it on the board). Leave `SITL_ADDRESS` empty.
+1. **Your name and the game server.** At the top of `web-gcs/backend/workshop.py` (the setup prints where it is), fill in `PILOT_NAME` (short, different from everyone else's) and `GAME_SERVER_URL` (we write it on the board). Leave `SITL_ADDRESS` empty.
 
-2. **Start the GCS**, in a terminal in `web-gcs/backend`, and leave it running:
-   - Linux: `venv/bin/python app.py`
-   - Windows: `venv\Scripts\python app.py`
-
-3. **Open [http://localhost:5000](http://localhost:5000)** in your browser and click **Connect**. The game server starts a plane for you (a few seconds the first time), and it stays yours for the whole workshop.
+2. In the GCS page ([http://localhost:5000](http://localhost:5000)), click **Connect**. The game server starts a plane for you (a few seconds the first time), and it stays yours for the whole workshop.
 
 From here on, follow [`web-gcs/CHEATSHEET.md`](web-gcs/CHEATSHEET.md) part by part. [`web-gcs/README.md`](web-gcs/README.md) has more on the GCS and on the game server.
 
 > Saving `workshop.py` restarts the backend, and the page reconnects by itself. If the file has a mistake, the page says on which line; fix it and save.
+
+## Setting it up by hand
+
+If the line above doesn't work for you, with **Python 3** installed (on Windows from [python.org](https://www.python.org/downloads/), ticking **"Add python.exe to PATH"**; on Debian/Ubuntu also `sudo apt install python3-venv`):
+
+```bash
+git clone https://github.com/starbound-team/ardupilot-workshop.git   # or download the ZIP from GitHub and unpack it
+cd ardupilot-workshop/web-gcs/backend
+python3 -m venv venv                                   # Windows: python -m venv venv
+venv/bin/python -m pip install -r requirements.txt     # Windows: venv\Scripts\python -m pip install -r requirements.txt
+venv/bin/python app.py                                 # Windows: venv\Scripts\python app.py
+```
+
+Then open [http://localhost:5000](http://localhost:5000). Calling the venv's own Python like this means you never need to "activate" the venv (which PowerShell refuses by default).
 
 ---
 
@@ -175,10 +170,13 @@ python sim_vehicle.py -w -v plane -l 39.360886,22.945749,0,0 --console --map
 
 # Troubleshooting
 
-**`python` isn't found, or opens the Microsoft Store (Windows)**
+**The setup stops with `[!!]`**
+The line above it says what went wrong. Most often the internet dropped: run it again, it carries on from where it stopped. "Another program is using port 5000" usually means a GCS is already running in another window.
+
+**`python` isn't found, or opens the Microsoft Store (Windows, setting up by hand)**
 Python wasn't added to PATH. Use `py` instead of `python` in the commands above (e.g. `py -m venv venv`), or reinstall Python with **"Add python.exe to PATH"** ticked.
 
-**`No module named venv` / `ensurepip is not available` (Debian/Ubuntu)**
+**`No module named venv` / `ensurepip is not available` (Debian/Ubuntu, setting up by hand)**
 Install `python3-venv` (`sudo apt install python3-venv`), delete the half-made `venv` folder and make it again.
 
 **The page doesn't load, or says "The backend isn't answering"**

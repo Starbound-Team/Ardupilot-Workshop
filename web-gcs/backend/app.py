@@ -107,6 +107,7 @@ def plane_address():
 
 # --- Flask App Setup ---
 # The backend also serves the GCS page itself, so the browser opens http://localhost:5000
+PORT = int(os.environ.get('GCS_PORT', 5000)) # Another port only for running two GCSes on one laptop
 FRONTEND = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend')
 app = Flask(__name__, static_folder=FRONTEND, static_url_path='')
 CORS(app) # Enable CORS for all routes, allowing requests from your frontend
@@ -546,4 +547,4 @@ if __name__ == '__main__':
     # otherwise use 127.0.0.1 for local access only.
     # Debug=True auto-reloads on code changes, but disable for production.
     # extra_files: a workshop.py that failed to import isn't watched by itself, but its fix must restart us
-    app.run(host='127.0.0.1', port=5000, debug=True, extra_files=[WORKSHOP_FILE])
+    app.run(host='127.0.0.1', port=PORT, debug=True, extra_files=[WORKSHOP_FILE])

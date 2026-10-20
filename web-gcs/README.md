@@ -2,7 +2,7 @@
 
 # Web-Based Ground Control Station (Web-GCS) for ArduPilot SITL 🛰️
 
-![StarBound Logo](./starbound_team_logo_bg.svg)
+![StarBound Logo](./starbound_team_logo_bg.png)
 
 
 **Developed with passion by StarBound – University of Thessaly Student Team, Volos, Greece.** 🇬🇷
