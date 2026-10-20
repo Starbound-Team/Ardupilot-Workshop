@@ -27,10 +27,10 @@ import threading
 METERS_PER_DEGREE = 111319.5
 
 RULES = {
-    "countdown_seconds": 60, # Before a round: planes fly themselves to their start positions
+    "countdown_seconds": 120, # Before a round: planes fly themselves to their start positions (up to ~2 km)
     "area": (39.355, 22.922, 39.378, 22.968), # South, west, north, east: where landmarks appear (over Volos)
     "area_end": 0.5, # Size of the area at the round's end, as a fraction of its full width and height
-    "start_inset": 0.15, # Start positions are this fraction of the way in from the corners towards the middle
+    "start_inset": 0.25, # Start positions are this fraction of the way in from the corners towards the middle
     "trail_points": 4, # Landmarks per trail, from a corner towards the middle
     "trail_end": 300, # m from the middle to each trail's last point
     "trail_wiggle": (60, 160), # m a trail point is off the straight line, alternately left and right
