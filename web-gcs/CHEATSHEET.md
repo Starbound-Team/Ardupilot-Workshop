@@ -204,6 +204,9 @@ landmark.view_width      # how wide that side is: 60 means up to 30° either sid
 landmark.inner, landmark.outer   # photos count between these distances from it (m)
 landmark.price           # what a photo sells for right now
 landmark.public          # True if everyone knows about it
+landmark.head_start      # seconds until everyone else knows about it too (0 once it's public)
+landmark.age             # seconds since it appeared
+landmark.sales           # how many photos of it have been sold, by anyone
 ```
 
 `approach_from = 90` means: photograph it from its **east** side, so you fly **west** towards it. On the GCS map each landmark has a shaded slice: that's where photos count.

@@ -119,6 +119,7 @@ def live_map_loop():
                 "groundspeed": current_vehicle.groundspeed,
                 "mode": current_vehicle.mode.name,
                 "armed": current_vehicle.armed,
+                "have": game.landmarks_have(), # Which landmark changes we have, so the server only sends newer ones
             }
             request_to_map = urllib.request.Request(
                 url,
@@ -501,10 +502,11 @@ def run_button():
 def landmarks():
     """The landmarks this plane knows about, for the map."""
     if not vehicle:
-        return jsonify({"status": "success", "landmarks": []})
-    return jsonify({"status": "success", "landmarks": [
+        return jsonify({"status": "success", "landmarks": [], "area": game.game_area()})
+    return jsonify({"status": "success", "area": game.game_area(), "landmarks": [
         {"name": lm.name, "lat": lm.loc.lat, "lon": lm.loc.lon, "approach_from": lm.approach_from,
-         "view_width": lm.view_width, "inner": lm.inner, "outer": lm.outer, "price": lm.price, "public": lm.public}
+         "view_width": lm.view_width, "inner": lm.inner, "outer": lm.outer, "price": lm.price, "public": lm.public,
+         "sales": lm.sales, "head_start": lm.head_start, "age": lm.age}
         for lm in game.get_known_landmarks()]})
 
 # --- Main Execution ---

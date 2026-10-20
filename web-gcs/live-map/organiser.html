@@ -124,6 +124,11 @@
         <button id="stop" class="stop">Stop round</button>
         <button id="reset">Reset</button>
     </div>
+    <div class="controls">
+        <span>Area <b id="areaSize">–</b> of full size</span>
+        <label>Shrinks to (%) <input id="areaEnd" type="number" value="50" min="20" max="100" step="5"></label>
+        <button id="areaHold">Hold</button>
+    </div>
     <div id="error"></div>
 
     <div class="columns">
@@ -147,6 +152,13 @@
             <table>
                 <thead><tr><th>Time</th><th>Who</th><th>Landmark</th><th>Price</th></tr></thead>
                 <tbody id="sales"></tbody>
+            </table>
+        </div>
+        <div>
+            <h2>Landmarks</h2>
+            <table>
+                <thead><tr><th>Name</th><th>Kind</th><th>Seen by</th><th>Price</th><th>Sales</th></tr></thead>
+                <tbody id="landmarks"></tbody>
             </table>
         </div>
     </div>
@@ -192,9 +204,25 @@
                 document.getElementById('noHosts').hidden = view.hosts.some(host => host.alive);
                 document.getElementById('sales').replaceChildren(...view.sales.slice().reverse().map(s =>
                     row([clock(s.time), s.name, s.landmark, s.price])));
+                // Trail points lead each corner in; a hidden one is still in its discoverer's head start
+                document.getElementById('landmarks').replaceChildren(...(view.all_landmarks ?? []).map(lm =>
+                    row([lm.name, lm.trail ? 'trail' : 'chain',
+                         lm.public ? 'everyone' : `finder only, ${Math.ceil(lm.head_start || 0)} s`,
+                         lm.price, lm.sales])));
+                showArea(view.area);
             } catch (error) {
                 document.getElementById('round').textContent = "Can't reach the server";
             }
+        }
+
+        let areaHeld = false;
+        function showArea(area) {
+            if (!area) return;
+            document.getElementById('areaSize').textContent = `${Math.round(area.scale * 100)} %`;
+            const end = document.getElementById('areaEnd');
+            if (document.activeElement !== end) end.value = Math.round(area.end * 100); // Not while typing in it
+            areaHeld = area.hold;
+            document.getElementById('areaHold').textContent = area.hold ? 'Resume shrinking' : 'Hold';
         }
 
         async function send(path, body = {}) {
@@ -220,6 +248,11 @@
         document.getElementById('startTest').addEventListener('click', () => start('test'));
         document.getElementById('startReal').addEventListener('click', () => start('real'));
         document.getElementById('stop').addEventListener('click', () => send('/api/organiser/stop'));
+        document.getElementById('areaEnd').addEventListener('change', event => {
+            const percent = Math.min(100, Math.max(20, Number(event.target.value) || 50));
+            send('/api/organiser/area', { end: percent / 100 });
+        });
+        document.getElementById('areaHold').addEventListener('click', () => send('/api/organiser/area', { hold: !areaHeld }));
         document.getElementById('reset').addEventListener('click', () => {
             if (confirm('Reset clears this round\'s landmarks and money. Sure?')) send('/api/organiser/reset');
         });

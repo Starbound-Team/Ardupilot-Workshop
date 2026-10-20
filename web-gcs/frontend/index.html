@@ -217,6 +217,16 @@
             color: #555;
             font-size: 12px;
         }
+        /* The landmark only we know about, for its head start */
+        .leaflet-tooltip.hidden-label {
+            background: #8e24aa;
+            border-color: #6a1b9a;
+            color: #fff;
+            font-weight: 700;
+        }
+        .leaflet-tooltip.hidden-label::before {
+            border-top-color: #6a1b9a;
+        }
         /* Where the plane is flying to: like a waypoint, with a crosshair instead of a number */
         .target-marker {
             display: flex;
@@ -456,7 +466,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Bump ?v= whenever script.js changes, so browsers don't keep running a cached old copy -->
-    <script src="script.js?v=17" defer></script>
+    <script src="script.js?v=18" defer></script>
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/leaflet-contextmenu@1.4.0/dist/leaflet.contextmenu.min.js"></script>

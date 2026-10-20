@@ -459,6 +459,58 @@ function photoZone(lm) {
     return points;
 }
 
+// A new landmark announces itself with a ring that grows and fades, twice
+function ripple(lat, lon, color) {
+    const ring = L.circleMarker([lat, lon], { radius: 6, color, weight: 3, fill: false, interactive: false }).addTo(map);
+    const start = performance.now();
+    const PULSE = 750; // ms per pulse
+    function step(now) {
+        const t = (now - start) / PULSE;
+        if (t >= 2) {
+            map.removeLayer(ring);
+            return;
+        }
+        const pulse = t % 1;
+        ring.setRadius(6 + 40 * pulse);
+        ring.setStyle({ opacity: 1 - pulse });
+        requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// Sold landmarks fade a little with every sale, but stay visible: what's left can still be worth a detour
+function saleFade(sales) {
+    return Math.max(0.35, 1 - 0.2 * (sales || 0));
+}
+
+function landmarkLabel(lm) {
+    let label = `${lm.name} · ${lm.price}`;
+    if (lm.head_start > 0) label += ` · ${Math.ceil(lm.head_start)} s alone`;
+    else if (lm.sales) label += ` · sold ${lm.sales}×`;
+    return label;
+}
+
+let shownLandmarks = null; // Names on the map after the last fetch; null = don't ripple the next ones
+let shownRound = null; // The round they were from
+let areaRectangle = null; // Where new landmarks can appear (it shrinks during a round)
+
+function showArea(area) {
+    if (!area) {
+        if (areaRectangle) {
+            map.removeLayer(areaRectangle);
+            areaRectangle = null;
+        }
+        return;
+    }
+    const bounds = [[area[0], area[1]], [area[2], area[3]]];
+    if (areaRectangle) {
+        areaRectangle.setBounds(bounds);
+    } else {
+        areaRectangle = L.rectangle(bounds, { color: '#455a64', weight: 1.5, dashArray: '6 6', fill: false, interactive: false })
+            .addTo(map);
+    }
+}
+
 async function fetchLandmarks() {
     try {
         const response = await fetch(`${backendUrl}/api/landmarks`);
@@ -466,15 +518,33 @@ async function fetchLandmarks() {
         if (!landmarkLayer) {
             landmarkLayer = L.layerGroup().addTo(map);
         }
+        // Everything is new at the start of a round, so only ripple landmarks that appear during one
+        const round = lastTelemetry && lastTelemetry.round;
+        const roundKey = round ? `${round.name}:${round.state}` : 'practice';
+        const ripples = shownLandmarks !== null && roundKey === shownRound;
         landmarkLayer.clearLayers();
         landmarkViews = data.landmarks.map(lm => {
-            const color = lm.public ? '#f9a825' : '#8e24aa';
-            const zone = L.polygon(photoZone(lm), { color, weight: 1, fillOpacity: 0.25 }).addTo(landmarkLayer);
-            const dot = L.circleMarker([lm.lat, lm.lon], { radius: 6, color, fillOpacity: 1 })
-                .bindTooltip(`${lm.name} · ${lm.price}`, { permanent: true, direction: 'top', offset: [0, -6] })
+            const hidden = !lm.public;
+            const color = hidden ? '#8e24aa' : '#f9a825';
+            const fade = saleFade(lm.sales);
+            const zone = L.polygon(photoZone(lm), { color, weight: hidden ? 2 : 1, opacity: fade, fillOpacity: 0.25 * fade })
                 .addTo(landmarkLayer);
+            if (hidden) { // A halo, so our own landmark stands out among the public ones
+                L.circleMarker([lm.lat, lm.lon], { radius: 13, color, weight: 2, fillOpacity: 0.2, interactive: false })
+                    .addTo(landmarkLayer);
+            }
+            const dot = L.circleMarker([lm.lat, lm.lon], { radius: hidden ? 8 : 6, color, opacity: fade, fillOpacity: fade })
+                .bindTooltip(landmarkLabel(lm), { permanent: true, direction: 'top', offset: [0, -6],
+                                                  opacity: 0.9 * fade, className: hidden ? 'hidden-label' : '' })
+                .addTo(landmarkLayer);
+            if (ripples && !shownLandmarks.has(lm.name)) {
+                ripple(lm.lat, lm.lon, color);
+            }
             return { lm, color, zone, dot, label: null };
         });
+        shownLandmarks = new Set(data.landmarks.map(lm => lm.name));
+        shownRound = roundKey;
+        showArea(data.area);
         showPhotoRule(lastTelemetry);
     } catch (error) {
         console.error('Landmark Fetch Error:', error);
@@ -504,7 +574,7 @@ function showPhotoRule(data) {
             && angleBetween(directionDegrees(data.lat, data.lon, lm.lat, lm.lon), heading) <= FIELD_OF_VIEW / 2;
         anyInCone ||= inCone;
         view.zone.setStyle({ color: inZone ? ZONE_GREEN : view.color });
-        const label = `${lm.name} · ${lm.price}` + (inZone && inCone ? ' ✓ photo' : '');
+        const label = landmarkLabel(lm) + (inZone && inCone ? ' ✓ photo' : '');
         if (label !== view.label) {
             view.dot.setTooltipContent(label);
             view.label = label;
@@ -806,6 +876,8 @@ function setUIConnected(connected) {
         if (landmarkLayer) {
             landmarkLayer.clearLayers();
         }
+        shownLandmarks = null; // Reconnecting shows them all at once again, without ripples
+        showArea(null);
         workshopButtons = [];
         drawWorkshopButtons([]);
 

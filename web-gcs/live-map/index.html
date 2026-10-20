@@ -258,16 +258,55 @@
                     lon + distance * Math.sin(d) / (111319.5 * Math.cos(lat * Math.PI / 180))];
         }
 
+        // A new landmark announces itself with a ring that grows and fades, twice
+        function ripple(lat, lon) {
+            const ring = L.circleMarker([lat, lon], { radius: 7, color: '#f9a825', weight: 4, fill: false, interactive: false }).addTo(map);
+            const start = performance.now();
+            const PULSE = 750; // ms per pulse
+            function step(now) {
+                const t = (now - start) / PULSE;
+                if (t >= 2) return ring.remove();
+                ring.setRadius(7 + 50 * (t % 1));
+                ring.setStyle({ opacity: 1 - t % 1 });
+                requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        let shownLandmarks = null; // Names on the map after the last update; null = don't ripple the next ones
+        let shownRound = null; // The round they were from
+        let areaRectangle = null; // Where new landmarks can appear: it shrinks during a round
+
         function updateLandmarks() {
             landmarkLayer.clearLayers();
+            // Everything is new when a round starts, so only ripple landmarks that appear during one
+            const roundKey = game ? `${game.round.name}:${game.round.state}` : null;
+            const ripples = shownLandmarks !== null && roundKey === shownRound;
             for (const lm of game?.landmarks ?? []) {
+                // Fades with every sale, but stays visible: what's left can still be worth a detour
+                const fade = Math.max(0.35, 1 - 0.2 * (lm.sales || 0));
                 const zone = [];
                 for (let i = 0; i <= 12; i++) zone.push(offsetLatLng(lm.lat, lm.lon, lm.outer, lm.approach_from - lm.view_width / 2 + lm.view_width * i / 12));
                 for (let i = 12; i >= 0; i--) zone.push(offsetLatLng(lm.lat, lm.lon, lm.inner, lm.approach_from - lm.view_width / 2 + lm.view_width * i / 12));
-                L.polygon(zone, { color: '#f9a825', weight: 1, fillOpacity: 0.25 }).addTo(landmarkLayer);
-                L.circleMarker([lm.lat, lm.lon], { radius: 7, color: '#f9a825', fillOpacity: 1 })
-                    .bindTooltip(`${lm.name} · ${lm.price}`, { permanent: true, direction: 'top', offset: [0, -7], className: 'landmark-label' })
+                L.polygon(zone, { color: '#f9a825', weight: 1, opacity: fade, fillOpacity: 0.25 * fade }).addTo(landmarkLayer);
+                L.circleMarker([lm.lat, lm.lon], { radius: 7, color: '#f9a825', opacity: fade, fillOpacity: fade })
+                    .bindTooltip(`${lm.name} · ${lm.price}`, { permanent: true, direction: 'top', offset: [0, -7],
+                                                              opacity: 0.9 * fade, className: 'landmark-label' })
                     .addTo(landmarkLayer);
+                if (ripples && !shownLandmarks.has(lm.name)) ripple(lm.lat, lm.lon);
+            }
+            shownLandmarks = new Set((game?.landmarks ?? []).map(lm => lm.name));
+            shownRound = roundKey;
+
+            const area = game?.area;
+            if (!area) {
+                areaRectangle?.remove();
+                areaRectangle = null;
+            } else if (areaRectangle) {
+                areaRectangle.setBounds([[area[0], area[1]], [area[2], area[3]]]);
+            } else {
+                areaRectangle = L.rectangle([[area[0], area[1]], [area[2], area[3]]],
+                    { color: '#455a64', weight: 2, dashArray: '8 8', fill: false, interactive: false }).addTo(map);
             }
         }
 

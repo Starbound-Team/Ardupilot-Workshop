@@ -113,20 +113,20 @@ def receive_telemetry():
             drone["trail"].append((lat, lon))
 
     game = contest.update_player(player_id, name, {"lat": lat, "lon": lon, "heading": to_float(data.get("heading"))},
-                                 time.time())
+                                 time.time(), have=data.get("have"))
     return jsonify({"status": "success", "game": game})
 
 
 @app.route('/api/photo', methods=['POST'])
 def take_photo():
-    """A photo from a player's plane: {id, lat, lon, heading} as their GCS saw it at that moment."""
+    """A photo from a player's plane: {id, lat, lon, heading, have} as their GCS saw it at that moment."""
     data = request.get_json(silent=True) or {}
     reported = (to_float(data.get("lat")), to_float(data.get("lon")), to_float(data.get("heading")))
     player_id = str(data.get("id", ""))
-    sold, text = contest.photo(player_id, reported, time.time())
+    sold, text, price, game = contest.photo(player_id, reported, time.time(), have=data.get("have"))
     logging.info(f"Photo from {drones.get(player_id, {}).get('name', '?')}: {text}")
     # The new state too, so a sold landmark is gone from the player's list straight away
-    return jsonify({"status": "success", "sold": sold, "text": text, "game": contest.state_for(player_id, time.time())})
+    return jsonify({"status": "success", "sold": sold, "text": text, "price": price, "game": game})
 
 
 @app.route('/api/sitl', methods=['POST'])
@@ -211,6 +211,18 @@ def reset_round():
         return error
     contest.reset()
     logging.info("Round reset.")
+    return jsonify({"status": "success"})
+
+
+@app.route('/api/organiser/area', methods=['POST'])
+def change_area():
+    """{key, end: size at the round's end (0.1-1 of the full area), hold: true to stop it shrinking}"""
+    data, error = organiser_only()
+    if error:
+        return error
+    hold = data.get("hold")
+    contest.set_area(time.time(), end=to_float(data.get("end")), hold=None if hold is None else bool(hold))
+    logging.info(f"Area: end {contest.area_end:.0%}{', held' if contest.area_hold else ''}")
     return jsonify({"status": "success"})
 
 

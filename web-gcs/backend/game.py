@@ -106,9 +106,13 @@ class Landmark:
     inner, outer   photos count between these distances from it, in metres
     price          what a photo of it sells for right now
     public         True if everyone knows about it, False if only you do
+    head_start     seconds until everyone else knows about it too (0 once it's public)
+    age            seconds since it appeared
+    sales          how many photos of it have been sold so far, by anyone
     """
 
-    def __init__(self, name, loc, approach_from, view_width=60, inner=30, outer=150, price=100, public=True):
+    def __init__(self, name, loc, approach_from, view_width=60, inner=30, outer=150, price=100, public=True,
+                 head_start=0, age=0, sales=0):
         self.name = name
         self.loc = loc
         self.approach_from = approach_from
@@ -117,6 +121,9 @@ class Landmark:
         self.outer = outer
         self.price = price
         self.public = public
+        self.head_start = head_start
+        self.age = age
+        self.sales = sales
 
     def __repr__(self):
         return f"Landmark({self.name!r}, price {self.price}, approach from {self.approach_from})"
@@ -146,6 +153,12 @@ _player_id = None
 _server_state = None # The server's latest answer: round, landmarks, score, other planes
 _server_state_time = 0
 _flown_to_start = None # The start position the plane was already sent to in this countdown
+# The server sends landmarks as a numbered list of changes; this is our copy, put together from them
+_landmarks = {} # Name -> the server's record of it (where, photo zone, value, when it went public, sales)
+_landmarks_have = None # {"round": n, "upto": n}: which changes we have, sent back with every request
+_sold_by_me = set() # Names we've sold in this round, so we can't sell them again
+_clock_offset = 0 # The server's clock minus ours, for working out prices
+_landmarks_lock = threading.Lock()
 
 
 def use_server(url, player_id):
@@ -154,9 +167,55 @@ def use_server(url, player_id):
     _server_url, _player_id = url, player_id
 
 
+def landmarks_have():
+    """Which landmark changes we have, for the GCS backend to send with every request."""
+    return _landmarks_have
+
+
+def _merge_landmarks(info):
+    """Applies the server's landmark changes, or replaces everything with a full list."""
+    global _landmarks_have
+    with _landmarks_lock:
+        have = _landmarks_have
+        if info.get("full"):
+            if have and have["round"] == info["round"] and have["upto"] > info["upto"]:
+                return # An older answer than what we have, arriving late
+            _landmarks.clear()
+            _landmarks.update({lm["name"]: lm for lm in info["landmarks"]})
+            _sold_by_me.clear()
+            _sold_by_me.update(info["sold_by_me"])
+        elif have and have["round"] == info["round"]:
+            for change in info["changes"]:
+                if change["n"] <= have["upto"]:
+                    continue # Already applied
+                if "landmark" in change:
+                    _landmarks[change["landmark"]["name"]] = change["landmark"]
+                if "sold_by_me" in change:
+                    _sold_by_me.add(change["sold_by_me"])
+            if info["upto"] < have["upto"]:
+                return
+        else:
+            return # Changes to something we don't have: the next request asks for a full list
+        _landmarks_have = {"round": info["round"], "upto": info["upto"]}
+
+
+def _price(lm, pricing, now):
+    """What a photo of lm sells for at time now (the server's clock). The same formula as the server's."""
+    value = lm["value"]
+    if lm["public_since"] is not None:
+        grew_until = min(t for t in (now, pricing["until"], lm["first_sale"]) if t is not None)
+        value += pricing["growth_step"] * max(0, int((grew_until - lm["public_since"]) // pricing["growth_seconds"]))
+    floor = pricing["price_floor"]
+    return round(floor + max(0, value - floor) * pricing["sale_keep"] ** lm["sales"])
+
+
 def set_server_state(state):
     """Called by the GCS backend with every answer from the server."""
-    global _server_state, _server_state_time, _flown_to_start
+    global _server_state, _server_state_time, _flown_to_start, _clock_offset
+    if state and "landmarks" in state:
+        _merge_landmarks(state["landmarks"])
+    if state and "now" in state:
+        _clock_offset = state["now"] - time.time()
     _server_state, _server_state_time = state, time.time()
     if state and state.get("round", {}).get("state") == "countdown" and state.get("start_position"):
         _fly_to_start(tuple(state["start_position"]))
@@ -204,8 +263,14 @@ def other_drones_for_map():
     return state.get("others", []) if state else []
 
 
+def game_area():
+    """(south, west, north, east): the server's area if there is one (it shrinks during a round), or GAME_AREA."""
+    state = _server()
+    return tuple(state["area"]) if state and state.get("area") else GAME_AREA
+
+
 def _in_game_area(loc):
-    south, west, north, east = GAME_AREA
+    south, west, north, east = game_area()
     return south <= loc.lat <= north and west <= loc.lon <= east
 
 
@@ -214,7 +279,7 @@ def _new_practice_landmark(center):
     impossible (center near its edge, or the plane started somewhere else entirely)."""
     global _practice_count
     _practice_count += 1
-    south, west, north, east = GAME_AREA
+    south, west, north, east = game_area()
     for attempt in range(200):
         if attempt < 100:
             loc = get_location_from(center, _practice_rng.uniform(400, 900), _practice_rng.uniform(0, 360))
@@ -239,9 +304,18 @@ def _practice_landmarks():
 def get_known_landmarks():
     """The landmarks you can photograph right now, as a list of Landmark."""
     if _in_round():
+        state = _server()
+        pricing = state.get("pricing")
+        if not pricing: # Countdown: nothing to photograph yet
+            return []
+        now = time.time() + _clock_offset
+        with _landmarks_lock:
+            records = [lm for name, lm in _landmarks.items() if name not in _sold_by_me]
         return [Landmark(l["name"], LocationGlobalRelative(l["lat"], l["lon"], FLYING_ALTITUDE), l["approach_from"],
-                         l["view_width"], l["inner"], l["outer"], l["price"], l["public"])
-                for l in _server().get("landmarks", [])]
+                         l["view_width"], l["inner"], l["outer"], _price(l, pricing, now), l["public_since"] is not None,
+                         head_start=max(0, round(l["head_start_until"] - now, 1)) if l["head_start_until"] else 0,
+                         age=round(now - l["born"], 1), sales=l["sales"])
+                for l in records]
     return _practice_landmarks()
 
 
@@ -336,7 +410,8 @@ def _take_photo_on_server(position, heading):
     if _server()["round"]["state"] != "running":
         print("Photo: no round running")
         return False
-    body = json.dumps({"id": _player_id, "lat": position.lat, "lon": position.lon, "heading": heading}).encode()
+    body = json.dumps({"id": _player_id, "lat": position.lat, "lon": position.lon, "heading": heading,
+                       "have": _landmarks_have}).encode()
     request = urllib.request.Request(_server_url + "/api/photo", data=body,
                                      headers={"Content-Type": "application/json"}, method="POST")
     try:
