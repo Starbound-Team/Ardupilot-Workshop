@@ -19,6 +19,8 @@ def ardupilot_folders():
     folders = []
     if os.environ.get("ARDUPILOT_DIR"):
         folders.append(os.environ["ARDUPILOT_DIR"])
+    # What the workshop's setup script installs: just build/sitl/bin/arduplane and Tools/autotest/models/plane.parm
+    folders.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "sitl"))
     sim_vehicle = shutil.which("sim_vehicle.py") # ArduPilot's setup puts Tools/autotest on the PATH
     if sim_vehicle:
         folders.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(sim_vehicle)))))
