@@ -41,6 +41,7 @@ except Exception as e:
     WORKSHOP_ERROR = describe_workshop_error(e)
     PILOT_NAME = GAME_SERVER_URL = SITL_ADDRESS = ""
 import game
+import local_sitl
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -48,7 +49,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # --- Global Variables ---
 vehicle = None
 connection_string = None # Where the plane is, decided on Connect (see plane_address)
-OWN_SITL = 'udp:127.0.0.1:14550' # SITL on this laptop (sim_vehicle.py's MAVProxy output)
+plane_movable = False # True if the plane can be moved to its corner before a round (see local_sitl.py)
+moving = False # True while the plane is being moved to its corner: it reboots and we reconnect
+connect_progress = None # What Connect is waiting for, for the page to show
+OWN_SITL = 'udp:127.0.0.1:14550' # SITL on this laptop started with sim_vehicle.py (its MAVProxy output)
+SITL_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.sitl') # The plane we start ourselves
 PLANE_WAIT = 90 # Seconds to wait for the game server to start our plane
 live_map_thread = None
 LIVE_MAP_INTERVAL = 0.5 # Seconds between telemetry updates sent to the game server
@@ -73,18 +78,33 @@ GCS_ID = gcs_id()
 BACKEND_START = uuid.uuid4().hex
 
 
-def plane_address():
+class NoPlane(Exception):
+    """Why Connect can't find a plane, said so the page can show it."""
+
+
+def plane_address(source):
     """
-    Which plane to fly, like a real GCS: an address in SITL_ADDRESS always wins; otherwise ask the game
-    server for our plane (it starts one the first time, then it stays ours) and wait while it starts;
-    without a server, or if it has no plane for us, our own SITL.
+    Which plane to fly, like a real GCS: an address in SITL_ADDRESS always wins; otherwise the one chosen
+    with the arrow next to Connect, "server" (the game server's plane for us) or "local" (a SITL on this
+    laptop). It never switches by itself: connection trouble often clears up on its own, so a server that
+    doesn't answer is asked again until PLANE_WAIT runs out.
+    Returns (address, True if the plane can be moved to its corner before a round).
     """
     if SITL_ADDRESS.strip():
-        return SITL_ADDRESS.strip()
+        return SITL_ADDRESS.strip(), False
+    if source == "local":
+        return local_plane()
+    return server_plane()
+
+
+def server_plane():
+    """Our plane on the game server: it starts one the first time we ask, then it stays ours."""
+    global connect_progress
     if not GAME_SERVER_URL.strip():
-        return OWN_SITL
+        raise NoPlane("GAME_SERVER_URL is empty in workshop.py: set it, or choose Local SITL with the arrow next to Connect")
     url = GAME_SERVER_URL.strip().rstrip('/') + '/api/sitl'
     deadline = time.time() + PLANE_WAIT
+    problem = None
     while time.time() < deadline:
         try:
             request_plane = urllib.request.Request(url, data=json.dumps({"id": GCS_ID}).encode(),
@@ -92,18 +112,74 @@ def plane_address():
             with urllib.request.urlopen(request_plane, timeout=3) as response:
                 answer = json.load(response)
         except Exception as e:
-            logging.warning(f"Game server doesn't answer ({e}): using our own SITL")
-            return OWN_SITL
+            if problem is None or not problem.startswith("the game server"):
+                logging.warning(f"Game server doesn't answer ({e}): asking again until it does")
+            problem = f"the game server at {GAME_SERVER_URL} doesn't answer ({e})"
+            connect_progress = f"Game server not answering, still trying... (or ▾ for a local SITL)"
+            time.sleep(2)
+            continue
         if answer.get("state") == "ready":
             logging.info(f"Our plane on the server: {answer['address']}")
-            return answer["address"]
+            return answer["address"], True
         if answer.get("state") == "none":
-            logging.warning(f"No plane from the game server ({answer.get('reason')}): using our own SITL")
-            return OWN_SITL
+            raise NoPlane(f"No plane from the game server ({answer.get('reason')}). "
+                          "Choose Local SITL with the arrow next to Connect to fly one on this laptop")
         logging.info("Waiting for the game server to start our plane...")
+        problem = "the game server's plane is still starting"
+        connect_progress = "The game server is starting your plane..."
         time.sleep(1)
-    logging.warning("The game server's plane didn't start in time: using our own SITL")
-    return OWN_SITL
+    raise NoPlane(f"No plane after {PLANE_WAIT} s: {problem}. Check GAME_SERVER_URL in workshop.py, "
+                  "or choose Local SITL with the arrow next to Connect")
+
+
+def sim_vehicle_running():
+    """True if a SITL started with sim_vehicle.py sends to OWN_SITL (its heartbeat comes every second)."""
+    listener = None
+    try:
+        listener = mavutil.mavlink_connection(OWN_SITL.replace('udp:', 'udpin:'))
+        return listener.wait_heartbeat(timeout=3) is not None
+    except OSError:
+        return False
+    finally:
+        if listener:
+            listener.close()
+
+
+def own_sitl_running():
+    """True if the plane we started earlier still runs (it outlives backend restarts)."""
+    try:
+        with open(os.path.join(SITL_FOLDER, 'pid')) as f:
+            pid = int(f.read())
+        os.kill(pid, 0)
+        with open(f'/proc/{pid}/cmdline', 'rb') as f:
+            return b'arduplane' in f.read()
+    except (OSError, ValueError):
+        return False
+
+
+def local_plane():
+    """A SITL on this laptop: one started with sim_vehicle.py if it runs (it can't be moved), else our own."""
+    global connect_progress
+    if sim_vehicle_running():
+        return OWN_SITL, False
+    log_path = os.path.join(SITL_FOLDER, 'sitl.log')
+    if not own_sitl_running():
+        ardupilot, problem = local_sitl.find_ardupilot()
+        if not ardupilot:
+            raise NoPlane(f"No SITL running on this laptop, and none to start: {problem}. "
+                          "Start one with sim_vehicle.py -v plane, or choose Server plane with the arrow next to Connect")
+        connect_progress = "Starting a SITL plane on this laptop..."
+        os.makedirs(SITL_FOLDER, exist_ok=True)
+        with open(log_path, 'w') as log:
+            process = local_sitl.start_plane(ardupilot, 0, SITL_FOLDER, log)
+        with open(os.path.join(SITL_FOLDER, 'pid'), 'w') as f:
+            f.write(str(process.pid))
+        logging.info(f"Started our own SITL from {ardupilot} (log: {log_path})")
+        deadline = time.time() + 30
+        while not local_sitl.listening(log_path) and time.time() < deadline:
+            time.sleep(0.5)
+    return f'tcp:127.0.0.1:{local_sitl.BASE_PORT}', True
+
 
 # --- Flask App Setup ---
 # The backend also serves the GCS page itself, so the browser opens http://localhost:5000
@@ -183,11 +259,79 @@ def index():
     """The GCS page."""
     return app.send_static_file('index.html')
 
+@app.route('/api/connect/options')
+def connect_options():
+    """What the page needs to pick the default plane: Server plane if there's a game server, else Local SITL."""
+    return jsonify({"status": "success", "server": bool(GAME_SERVER_URL.strip()), "sitl_address": SITL_ADDRESS.strip()})
+
+
+def use_connected(new_vehicle):
+    """Everything a freshly connected plane needs, on Connect and after moving it to its corner."""
+    global vehicle
+    # A plane circles this far from a GUIDED target. The SITL default (80 m) keeps it too far
+    # from the workshop's waypoints, so every plane gets the same tighter circle.
+    try:
+        new_vehicle.parameters['WP_LOITER_RAD'] = 30
+    except Exception as e:
+        logging.warning(f"Could not set WP_LOITER_RAD: {e}")
+    vehicle = new_vehicle
+    start_live_map()
+    game.use_vehicle(vehicle, move_plane if plane_movable else None)
+
+
+def reboot(current):
+    """Restarts the simulator with a forced reboot over MAVLink and closes our connection to it."""
+    # MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN: param1 = 1 reboots; param6 = 20190226 forces it even while armed
+    current.send_mavlink(current.message_factory.command_long_encode(
+        0, 0, mavutil.mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 0, 1, 0, 0, 0, 0, 20190226, 0))
+    logging.info("SITL reset: reboot sent")
+    time.sleep(1)
+    current.close()
+
+
+def set_start_position(current, lat, lon, heading):
+    """Where the simulator puts the plane down when it next starts (only for a plane local_sitl.py started)."""
+    for name, value in (('SIM_OPOS_LAT', lat), ('SIM_OPOS_LNG', lon), ('SIM_OPOS_HDG', heading)):
+        current.parameters[name] = value
+
+
+def move_plane(lat, lon, heading):
+    """
+    Before a round: puts our plane down at its start position (lat, lon), facing heading, by setting where
+    the simulator starts and rebooting it, then reconnects. Runs in its own thread (game.py starts it).
+    """
+    global vehicle, moving
+    current = vehicle
+    if not current or moving:
+        return
+    moving = True
+    try:
+        game.stop_all()
+        game.take_control()
+        set_start_position(current, lat, lon, heading)
+        vehicle = None
+        game.use_vehicle(None)
+        reboot(current)
+        time.sleep(8) # Connecting during the reboot only gets errors
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            try:
+                use_connected(connect(connection_string, wait_ready=True, timeout=30, heartbeat_timeout=15))
+                logging.info("Plane at its start position, reconnected")
+                return
+            except Exception as e:
+                logging.info(f"Plane not back yet ({e})")
+                time.sleep(2)
+        logging.error("The plane didn't come back after moving it: click Connect")
+    finally:
+        moving = False
+
+
 @app.route('/api/connect', methods=['POST'])
 def connect_drone():
-    """Attempts to connect to the drone via DroneKit."""
+    """Attempts to connect to the drone via DroneKit. Body: {"source": "server" or "local"}, see plane_address."""
     global vehicle
-    global connection_string
+    global connection_string, plane_movable, connect_progress
 
     if WORKSHOP_ERROR:
         return jsonify({"status": "error", "message": f"workshop.py has a mistake, {WORKSHOP_ERROR}. Fix it and save"}), 500
@@ -197,7 +341,14 @@ def connect_drone():
          logging.info("Already connected.")
          return jsonify({"status": "success", "message": "Already connected"})
 
-    connection_string = plane_address()
+    source = (request.get_json(silent=True) or {}).get('source')
+    try:
+        connection_string, plane_movable = plane_address(source)
+    except NoPlane as e:
+        logging.warning(f"No plane: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        connect_progress = None
     logging.info(f"Attempting connection to {connection_string}...")
     try:
         # Connect to the Vehicle
@@ -228,15 +379,7 @@ def connect_drone():
         except Exception as e:
              logging.warning(f"Could not retrieve all vehicle details immediately after connection: {e}")
 
-        # A plane circles this far from a GUIDED target. The SITL default (80 m) keeps it too far
-        # from the workshop's waypoints, so every plane gets the same tighter circle.
-        try:
-            vehicle.parameters['WP_LOITER_RAD'] = 30
-        except Exception as e:
-            logging.warning(f"Could not set WP_LOITER_RAD: {e}")
-
-        start_live_map()
-        game.use_vehicle(vehicle)
+        use_connected(vehicle)
 
         return jsonify({"status": "success", "message": "Connected to Vehicle"})
 
@@ -337,7 +480,8 @@ def get_status():
         if vehicle:
             logging.warning("Status requested, but vehicle object exists but is not connected.")
         return jsonify({"status": "success", "data": {"is_connected": False, "backend_start": BACKEND_START,
-                                                      "workshop_error": WORKSHOP_ERROR}})
+                                                      "workshop_error": WORKSHOP_ERROR, "moving": moving,
+                                                      "connect_progress": connect_progress}})
 
 
 @app.route('/api/takeoff', methods=['POST'])
@@ -486,22 +630,20 @@ def goto_point():
 @app.route('/api/reset_sitl', methods=['POST'])
 def reset_sitl():
     """
-    Restarts the simulator with a forced reboot over MAVLink: the plane is back on its runway, disarmed,
-    with its parameters reset. The connection is closed so that Connect sets everything up again
-    (the GCS reconnects by itself after a few seconds).
+    Restarts the simulator with a forced reboot over MAVLink: the plane is back on its runway (the launch
+    point, also if a round moved it), disarmed. The connection is closed so that Connect sets everything up
+    again (the GCS reconnects by itself after a few seconds).
     """
     global vehicle
     if not vehicle:
         return jsonify({"status": "error", "message": "Vehicle not connected"}), 400
     game.stop_all()
     game.take_control()
-    # MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN: param1 = 1 reboots; param6 = 20190226 forces it even while armed
-    vehicle.send_mavlink(vehicle.message_factory.command_long_encode(
-        0, 0, mavutil.mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 0, 1, 0, 0, 0, 0, 20190226, 0))
-    logging.info("SITL reset: reboot sent")
-    time.sleep(1)
+    current = vehicle
     try:
-        vehicle.close()
+        if plane_movable:
+            set_start_position(current, *local_sitl.LAUNCH[:2], local_sitl.LAUNCH[3])
+        reboot(current)
     finally:
         vehicle = None
         game.use_vehicle(None)

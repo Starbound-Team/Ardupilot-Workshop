@@ -6,7 +6,8 @@ server every second, starts the planes the server asks for, and starts a plane a
 Participants never see it: their GCS asks the server for a plane and gets this laptop's address.
 
 Each plane is its own SITL process (instance 1, 2, ...) with its own folder and port, started directly
-rather than with sim_vehicle.py, which would kill all the others.
+rather than with sim_vehicle.py, which would kill all the others. Started that way, a participant's GCS can
+move its plane to its corner before a round (see backend/local_sitl.py).
 
 Usage:  python sitl_agent.py http://192.168.1.50:8080 --key KEY --max 15
         (KEY is the organiser key the server prints; --max is how many planes this laptop may run)
@@ -23,8 +24,8 @@ import time
 import urllib.request
 import uuid
 
-HOME = "39.360886,22.945749,0,0" # The workshop launch point: lat, lon, altitude, heading
-BASE_PORT = 5760 # Instance N listens on BASE_PORT + 10 * N
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend"))
+from local_sitl import BASE_PORT, binary, listening, start_plane # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("server", help="Game server address, e.g. http://192.168.1.50:8080")
@@ -35,10 +36,8 @@ parser.add_argument("--ardupilot", default=os.path.expanduser("~/.ardupilot/ardu
                     help="ArduPilot folder with the plane built (build/sitl/bin/arduplane)")
 args = parser.parse_args()
 
-binary = os.path.join(args.ardupilot, "build", "sitl", "bin", "arduplane")
-defaults = os.path.join(args.ardupilot, "Tools", "autotest", "models", "plane.parm")
-if not os.path.exists(binary):
-    sys.exit(f"No plane built at {binary}: build it with  ./waf configure --board sitl && ./waf plane")
+if not os.path.exists(binary(args.ardupilot)):
+    sys.exit(f"No plane built at {binary(args.ardupilot)}: build it with  ./waf configure --board sitl && ./waf plane")
 folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "planes")
 agent_id = uuid.uuid4().hex[:8]
 
@@ -63,20 +62,14 @@ def start(instance):
     log_path = os.path.join(plane_folder, "sitl.log")
     log_from = os.path.getsize(log_path) if os.path.exists(log_path) else 0
     log = open(log_path, "a")
-    # -w starts each plane with fresh parameters; Reset SITL reboots it in place
-    process = subprocess.Popen([binary, "--model", "plane", "--speedup", "1", "-w", "--defaults", defaults,
-                                f"-I{instance}", "--home", HOME],
-                               cwd=plane_folder, stdout=log, stderr=subprocess.STDOUT)
+    process = start_plane(args.ardupilot, instance, plane_folder, log)
     planes[instance] = {"process": process, "log": log_path, "log_from": log_from}
     print(f"Started a plane on port {BASE_PORT + 10 * instance}", flush=True)
 
 
 def state(plane):
     """ready once SITL listens for its GCS (it says so in its log), starting before that."""
-    with open(plane["log"], errors="replace") as f:
-        f.seek(plane["log_from"])
-        text = f.read()
-    return "ready" if "Waiting for connection" in text or "Connection on serial port" in text else "starting"
+    return "ready" if listening(plane["log"], plane["log_from"]) else "starting"
 
 
 def check_in():

@@ -1,5 +1,8 @@
 const connectButton = document.getElementById('connectButton');
 const disconnectButton = document.getElementById('disconnectButton');
+const connectWrap = document.getElementById('connectWrap');
+const connectChoiceButton = document.getElementById('connectChoiceButton');
+const connectMenu = document.getElementById('connectMenu');
 const statusButton = document.getElementById('statusButton');
 const takeoffButton = document.getElementById('takeoffButton');
 const altitudeInput = document.getElementById('altitudeInput');
@@ -33,6 +36,7 @@ let lastPhotoShown = null; // Number of the newest photo result we have shown as
 let lastButtonError = null; // Number of the last button crash we showed
 let backendStart = null; // Which run of the backend we are connected to; a different one means it restarted
 let reconnecting = false; // Reconnecting by ourselves after a backend restart
+let movingShown = false; // Said once that the plane is being moved to its start position
 let lastStatusOk = 0; // When the backend last answered a status request
 let warnedNoBackend = false; // Shown the "backend isn't answering" toast since then
 const NO_BACKEND_WARNING = 3000; // ms without an answer before that toast
@@ -851,7 +855,8 @@ function setUIConnected(connected) {
         clearTrail(); // Start a fresh trail on every connection
 
         //updateStatus('Connected');
-        connectButton.hidden = true;
+        connectWrap.hidden = true;
+        connectMenu.hidden = true;
         disconnectButton.hidden = false;
         fetchStatus(); // Fetch immediately
         if (!statusInterval) {
@@ -863,7 +868,7 @@ function setUIConnected(connected) {
             landmarkInterval = setInterval(fetchLandmarks, 1000);
         }
     } else {
-        connectButton.hidden = false;
+        connectWrap.hidden = false;
         disconnectButton.hidden = true;
         backendStart = null;
 
@@ -922,12 +927,64 @@ function setUIConnected(connected) {
 
 
 // --- API Call Functions ---
+// --- Which plane Connect uses: "server" (the organisers' laptop) or "local" (a SITL on this laptop) ---
+// Chosen with the arrow next to Connect and remembered in this browser. Connect never switches by itself:
+// connection trouble often clears up on its own, so it keeps asking and says what to try instead.
+let planeSource = null;
+
+function choosePlaneSource(source) {
+    planeSource = source;
+    try {
+        localStorage.setItem('planeSource', source);
+    } catch (e) {} // Private window: just not remembered
+    connectMenu.querySelectorAll('.connect-option').forEach(option =>
+        option.classList.toggle('selected', option.dataset.source === source));
+    const name = source === 'local' ? 'a SITL on this laptop' : "your plane on the organisers' laptop";
+    connectButton.title = `Connect to ${name} (change it with the arrow)`;
+}
+
+async function loadPlaneSource() {
+    let source = null;
+    try {
+        source = localStorage.getItem('planeSource');
+    } catch (e) {}
+    if (source !== 'server' && source !== 'local') {
+        source = 'server'; // Nothing chosen yet: the server's plane if workshop.py names a server
+        try {
+            const options = await (await fetch(`${backendUrl}/api/connect/options`)).json();
+            if (!options.server) source = 'local';
+        } catch (e) {}
+    }
+    choosePlaneSource(source);
+}
+
+function toggleConnectMenu(open = connectMenu.hidden) {
+    connectMenu.hidden = !open;
+    connectChoiceButton.setAttribute('aria-expanded', String(open));
+}
+
 async function connectToDrone(message = "Connecting to SITL (this can take up to a minute)...") {
     //updateStatus('Attempting connection...');
     showToast(message, "info", 5000);
     connectButton.disabled = true;
+    connectChoiceButton.disabled = true;
+    toggleConnectMenu(false);
+    // While Connect waits (for the server, or a SITL starting), the backend says what for
+    let lastProgress = null;
+    const progress = setInterval(async () => {
+        try {
+            const status = await (await fetch(`${backendUrl}/api/status`)).json();
+            const text = status.data && status.data.connect_progress;
+            if (text && text !== lastProgress) showToast(text, "info", 5000);
+            lastProgress = text;
+        } catch (e) {}
+    }, 2000);
     try {
-        const response = await fetch(`${backendUrl}/api/connect`, { method: 'POST' });
+        const response = await fetch(`${backendUrl}/api/connect`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: planeSource }),
+        });
         const data = await response.json();
 
         if (response.ok && data.status === 'success') {
@@ -944,7 +1001,9 @@ async function connectToDrone(message = "Connecting to SITL (this can take up to
         showToast(`Connection error: ${error.message} (is the backend running?)`, "error");
         setUIConnected(false);
     } finally {
+        clearInterval(progress);
         connectButton.disabled = false;
+        connectChoiceButton.disabled = false;
     }
 }
 
@@ -978,6 +1037,14 @@ async function fetchStatus() {
 
             if (result.data.is_connected) {
                 backendStart = result.data.backend_start;
+                movingShown = false;
+            } else if (result.data.moving) {
+                // The round is starting and the backend is moving the plane to its corner: it reconnects itself
+                if (!movingShown) {
+                    movingShown = true;
+                    showToast("Round starting: your plane is being put down at its start position. Back in about 15 s; "
+                        + "it can't arm for about 30 s after that, then take off", "info", 12000);
+                }
             } else if (backendStart && result.data.backend_start !== backendStart) {
                 if (result.data.workshop_error) {
                     showWorkshopError(result.data); // Wait for the save that fixes it, then reconnect
@@ -1034,6 +1101,18 @@ if (window.matchMedia('(max-width: 600px)').matches) {
 }
 
 connectButton.addEventListener('click', () => connectToDrone());
+connectChoiceButton.addEventListener('click', event => {
+    event.stopPropagation(); // Not a click outside the menu
+    toggleConnectMenu();
+});
+connectMenu.querySelectorAll('.connect-option').forEach(option => option.addEventListener('click', () => {
+    choosePlaneSource(option.dataset.source);
+    toggleConnectMenu(false);
+}));
+document.addEventListener('click', event => {
+    if (!connectMenu.hidden && !connectWrap.contains(event.target)) toggleConnectMenu(false);
+});
+loadPlaneSource();
 disconnectButton.addEventListener('click', disconnectFromDrone);
 statusButton.addEventListener('click', fetchStatus); // Manual status fetch
 takeoffButton.addEventListener('click', sendTakeOff); // Manual status fetch

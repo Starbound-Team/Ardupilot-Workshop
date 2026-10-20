@@ -132,16 +132,17 @@ class Landmark:
 # Outside a round you practise on landmarks of your own around where you took off.
 # Photographing one moves it somewhere new, so there is always something to fly to.
 _vehicle = None
+_mover = None # Puts the plane down at a start position (lat, lon, heading), if it can be moved; see app.py
 _practice = []
 _practice_lock = threading.Lock()
 _practice_rng = random.Random(1)
 _practice_count = 0
 
 
-def use_vehicle(vehicle):
-    """Called by the GCS backend when it connects."""
-    global _vehicle
-    _vehicle = vehicle
+def use_vehicle(vehicle, mover=None):
+    """Called by the GCS backend when it connects. mover moves the plane to a start position, if it can."""
+    global _vehicle, _mover
+    _vehicle, _mover = vehicle, mover
 
 
 # ---------- The game server ----------
@@ -153,6 +154,7 @@ _player_id = None
 _server_state = None # The server's latest answer: round, landmarks, score, other planes
 _server_state_time = 0
 _flown_to_start = None # The start position the plane was already sent to in this countdown
+_moved_to = None # The start position the plane was already put down at in this countdown
 # The server sends landmarks as a numbered list of changes; this is our copy, put together from them
 _landmarks = {} # Name -> the server's record of it (where, photo zone, value, when it went public, sales)
 _landmarks_have = None # {"round": n, "upto": n}: which changes we have, sent back with every request
@@ -211,16 +213,34 @@ def _price(lm, pricing, now):
 
 def set_server_state(state):
     """Called by the GCS backend with every answer from the server."""
-    global _server_state, _server_state_time, _flown_to_start, _clock_offset
+    global _server_state, _server_state_time, _flown_to_start, _moved_to, _clock_offset
     if state and "landmarks" in state:
         _merge_landmarks(state["landmarks"])
     if state and "now" in state:
         _clock_offset = state["now"] - time.time()
     _server_state, _server_state_time = state, time.time()
     if state and state.get("round", {}).get("state") == "countdown" and state.get("start_position"):
-        _fly_to_start(tuple(state["start_position"]))
+        start = tuple(state["start_position"])
+        if _mover is not None and _moved_to != start:
+            _move_to_start(start, state.get("area") or GAME_AREA)
+        else:
+            _fly_to_start(start)
     else:
-        _flown_to_start = None
+        _flown_to_start = _moved_to = None
+
+
+def _move_to_start(start, area):
+    """
+    Before a round, a plane the GCS can move is put down at its start position, facing the middle of the area,
+    on the ground: it reboots there and the GCS reconnects. Takeoff is up to you.
+    """
+    global _moved_to
+    _moved_to = start
+    south, west, north, east = area
+    middle = LocationGlobalRelative((south + north) / 2, (west + east) / 2, 0)
+    heading = get_direction_degrees(LocationGlobalRelative(start[0], start[1], 0), middle)
+    logging.info("Round starting: moving the plane to its start position")
+    threading.Thread(target=_mover, args=(start[0], start[1], heading), daemon=True).start()
 
 
 def _server():
@@ -236,7 +256,8 @@ def _in_round():
 
 
 def _fly_to_start(start):
-    """Before a round, the GCS sends the plane to its start position itself, taking over from any button."""
+    """Before a round, the GCS sends the plane to its start position itself, taking over from any button.
+    For a plane it moved there, this just keeps it circling there once it has taken off."""
     global _flown_to_start
     if _vehicle is None or _flown_to_start == start:
         return
