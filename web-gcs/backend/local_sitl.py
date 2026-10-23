@@ -8,11 +8,16 @@ its corner before a round. sim_vehicle.py always passes --home, so a plane start
 """
 import os
 import shutil
+import socket
 import subprocess
+import sys
+import threading
+import time
 
 LAUNCH = (39.360886, 22.945749, 0, 0) # The workshop launch point: lat, lon, altitude, heading
 WINDOWS = os.name == "nt"
 BASE_PORT = 5760 # Instance N listens on BASE_PORT + 10 * N
+RELAY_OFFSET = 5 # Windows: the plane connects to its relay on its port + 5 (+1 to +3 are its other serial ports)
 
 
 def ardupilot_folders():
@@ -59,10 +64,24 @@ def start_plane(ardupilot, instance, folder, log):
     defaults = os.path.join(ardupilot, "Tools", "autotest", "models", "plane.parm") + ",start.parm"
     command = [binary(ardupilot), "--model", "plane", "--speedup", "1", "-w", "--defaults", defaults, f"-I{instance}"]
     if WINDOWS:
-        # Its own process group without a console: Ctrl+C in the GCS window doesn't reach it. (Tested under Wine
-        # only: there it quits when its GCS disconnects, and the next Connect starts a new one.)
-        return subprocess.Popen(command, cwd=folder, stdout=log, stderr=subprocess.STDOUT,
-                                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS)
+        # ArduPilot's Windows build quits whenever its GCS disconnects (every save of workshop.py restarts the
+        # backend), so it doesn't talk to the GCS itself: it connects out to a relay (below), which never hangs up
+        # on it, and the GCS connects to the relay on the usual port. Both run without a console of their own,
+        # so Ctrl+C in the GCS window doesn't reach them, and they outlive the backend.
+        port = BASE_PORT + 10 * instance
+        detached = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+        with open(os.path.join(folder, "relay.log"), "a") as relay_log:
+            subprocess.Popen([sys.executable, os.path.abspath(__file__), "relay", str(port), str(port + RELAY_OFFSET)],
+                             cwd=folder, stdout=relay_log, stderr=subprocess.STDOUT, creationflags=detached)
+        for _ in range(50): # Until the relay listens for the plane (or one from before already does)
+            with socket.socket() as probe: # Without connecting, which the relay would take for the plane
+                try:
+                    probe.bind(("127.0.0.1", port + RELAY_OFFSET))
+                except OSError:
+                    break # Taken: the relay is there
+            time.sleep(0.1)
+        command += ["--serial0", f"tcpclient:127.0.0.1:{port + RELAY_OFFSET}"]
+        return subprocess.Popen(command, cwd=folder, stdout=log, stderr=subprocess.STDOUT, creationflags=detached)
     # SITL quits as soon as the process that started it is gone, so a small shell stays in between as its parent:
     # the plane then keeps running when the GCS backend restarts (every save of workshop.py restarts it)
     return subprocess.Popen(["sh", "-c", '"$@"; exit $?', "sh"] + command, cwd=folder, stdout=log,
@@ -91,11 +110,87 @@ def is_running(pid):
 
 
 def listening(log_path, log_from=0):
-    """True once a plane started with start_plane waits for its GCS (it says so in its log)."""
+    """True once a plane started with start_plane waits for its GCS (it says so in its log, or on Windows its relay does)."""
+    if WINDOWS:
+        log_path, log_from = os.path.join(os.path.dirname(log_path), "relay.log"), 0
     try:
         with open(log_path, errors="replace") as f:
             f.seek(log_from)
             text = f.read()
     except FileNotFoundError:
         return False
-    return "Waiting for connection" in text or "Connection on serial port" in text
+    return "Waiting for connection" in text or "Connection on serial port" in text or "plane connected" in text
+
+
+def relay(gcs_port, plane_port):
+    """
+    Windows: passes MAVLink between a plane (connecting in on plane_port) and its GCS (connecting in on gcs_port).
+    When the GCS goes away (the backend restarts), the plane's connection stays open, so the plane keeps flying;
+    the next GCS picks up where the last one left off. When the plane reboots (moved to its corner), it connects
+    again. Runs until the plane has been gone for a minute.
+    """
+    ends = {"plane": None, "gcs": None}
+    lock = threading.Lock()
+
+    def listen(port, host):
+        server = socket.socket() # No SO_REUSEADDR: on Windows it would let a second relay take the same port
+        try:
+            server.bind((host, port))
+        except OSError:
+            print(f"relay: port {port} is taken, a relay must be running already", flush=True)
+            sys.exit(0)
+        server.listen(1)
+        return server
+
+    def forward(name, other):
+        """Reads from one end and writes to the other until this end closes; the other end stays open."""
+        conn = ends[name]
+        while True:
+            try:
+                data = conn.recv(65536)
+            except OSError:
+                data = b""
+            if not data:
+                break
+            with lock:
+                target = ends[other]
+            if target is not None:
+                try:
+                    target.sendall(data)
+                except OSError:
+                    pass # The other end is gone: its own reader tidies up
+        with lock:
+            if ends[name] is conn:
+                ends[name] = None
+        conn.close()
+        print(f"relay: {name} disconnected", flush=True)
+
+    def accept(server, name, other):
+        while True:
+            conn, _ = server.accept()
+            conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            with lock:
+                old, ends[name] = ends[name], conn
+            if old is not None:
+                old.close() # A newer one replaces it
+            print(f"relay: {name} connected", flush=True)
+            threading.Thread(target=forward, args=(name, other), daemon=True).start()
+
+    gcs_server = listen(gcs_port, "0.0.0.0") # The GCS may be on another laptop (planes the organisers host)
+    plane_server = listen(plane_port, "127.0.0.1")
+    print(f"relay: GCS on port {gcs_port}, plane on port {plane_port}", flush=True)
+    threading.Thread(target=accept, args=(plane_server, "plane", "gcs"), daemon=True).start()
+    threading.Thread(target=accept, args=(gcs_server, "gcs", "plane"), daemon=True).start()
+    gone_since = time.time()
+    while True:
+        time.sleep(1)
+        with lock:
+            if ends["plane"] is not None:
+                gone_since = time.time()
+        if time.time() - gone_since > 60:
+            print("relay: no plane for a minute, stopping", flush=True)
+            return
+
+
+if __name__ == "__main__" and len(sys.argv) == 4 and sys.argv[1] == "relay":
+    relay(int(sys.argv[2]), int(sys.argv[3]))

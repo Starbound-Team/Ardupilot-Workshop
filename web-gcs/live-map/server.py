@@ -8,6 +8,7 @@ from /organiser. The game itself is in contest.py.
 
 Run:  python server.py   then open http://localhost:8080 on the projector.
 """
+import html
 import logging
 import math
 import os
@@ -15,9 +16,10 @@ import secrets
 import socket
 import threading
 import time
+import urllib.parse
 from collections import deque
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 
 from contest import Contest
 from sitl_pool import SitlPool
@@ -57,6 +59,38 @@ def to_float(value):
 @app.route('/')
 def index():
     return send_from_directory(app.root_path, 'index.html')
+
+
+@app.route('/vendor/<path:name>')
+def vendor(name):
+    """The pages' libraries (map, icons, fonts), from this laptop rather than the internet."""
+    return send_from_directory(os.path.join(os.path.dirname(app.root_path), 'vendor'), name)
+
+
+@app.route('/setup/')
+@app.route('/setup/<path:name>')
+def setup_copy(name=""):
+    """
+    The offline copy of everything the setup downloads (setup/prepare_offline.py fills <repo>/offline), for laptops
+    at the workshop without internet: curl -LsSf http://<this laptop>:8080/setup/start.sh | sh, or start.ps1 on Windows.
+    The two start scripts get this laptop's address written in; a folder is a page of links (pip's --find-links).
+    """
+    offline = os.path.join(os.path.dirname(os.path.dirname(app.root_path)), "offline")
+    path = os.path.join(offline, name)
+    if name in ("start.sh", "start.ps1") and os.path.isfile(path):
+        mirror = request.host_url.rstrip("/") + "/setup"
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        if name == "start.sh":
+            text = text.replace('WORKSHOP_MIRROR="${WORKSHOP_MIRROR:-}"', f'WORKSHOP_MIRROR="${{WORKSHOP_MIRROR:-{mirror}}}"', 1)
+        else:
+            text = text.replace("$Mirror = $env:WORKSHOP_MIRROR", f'$Mirror = "{mirror}"', 1)
+        return Response(text, mimetype="text/plain")
+    if os.path.isdir(path) and os.path.commonpath([offline, os.path.abspath(path)]) == offline:
+        links = "".join(f'<a href="{urllib.parse.quote(f)}">{html.escape(f)}</a><br>\n' for f in sorted(os.listdir(path)))
+        return Response(f"<html><body>\n{links}</body></html>", mimetype="text/html")
+    # As plain bytes: Flask would label a .tar.gz "Content-Encoding: gzip", and uv's downloader would then unpack it
+    return send_from_directory(offline, name, mimetype="application/octet-stream")
 
 
 @app.route('/planner')

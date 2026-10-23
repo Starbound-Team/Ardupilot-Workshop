@@ -3,7 +3,7 @@ import collections
 import collections.abc
 collections.MutableMapping = collections.abc.MutableMapping # Fix for newer Python versions with dronekit
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS # Import CORS
 # Make sure all necessary DroneKit classes are imported
 from dronekit import connect, VehicleMode, APIException, LocationGlobalRelative, Command
@@ -184,6 +184,7 @@ def local_plane():
 PORT = int(os.environ.get('GCS_PORT', 5000)) # Another port only for running two GCSes on one laptop
 FRONTEND = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'frontend')
 app = Flask(__name__, static_folder=FRONTEND, static_url_path='')
+VENDOR = os.path.join(os.path.dirname(FRONTEND), 'vendor') # Copies of the web libraries the page uses
 CORS(app) # Enable CORS for all routes, allowing requests from your frontend
 
 
@@ -207,8 +208,9 @@ def live_map_loop():
 
         try:
             location = current_vehicle.location.global_relative_frame
-            if location is None or location.lat is None or location.lon is None:
-                continue # No GPS position yet
+            if location is None or location.lat is None or location.lon is None or \
+                    (abs(location.lat) < 0.01 and abs(location.lon) < 0.01):
+                continue # No GPS position yet (SITL says 0, 0 until it has a fix)
 
             payload = {
                 "id": GCS_ID,
@@ -256,6 +258,11 @@ def start_live_map():
 def index():
     """The GCS page."""
     return app.send_static_file('index.html')
+
+@app.route('/vendor/<path:name>')
+def vendor(name):
+    """The page's libraries (map, icons, fonts), from this laptop rather than the internet."""
+    return send_from_directory(VENDOR, name)
 
 @app.route('/api/connect/options')
 def connect_options():

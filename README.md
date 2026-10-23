@@ -36,8 +36,13 @@ powershell -ExecutionPolicy ByPass -c "irm https://raw.githubusercontent.com/sta
 ```bash
 curl -LsSf https://raw.githubusercontent.com/starbound-team/ardupilot-workshop/main/setup/start.sh | sh
 ```
+(No `curl`, as on a fresh Ubuntu? `wget -qO- https://raw.githubusercontent.com/starbound-team/ardupilot-workshop/main/setup/start.sh | sh`)
 
-It gets everything the GCS needs into **`ardupilot-workshop` in your home folder** (its own Python too, so it doesn't matter which Python you have, or whether you have one), starts the GCS and opens it in your browser. Leave its window open: closing it stops the GCS. On Linux it also gets a small plane simulator (SITL) for your laptop, in case the organisers' planes can't be reached.
+It gets everything the GCS needs into **`ardupilot-workshop` in your home folder** (its own Python too, so it doesn't matter which Python you have, or whether you have one), starts the GCS and opens it in your browser. Leave its window open: closing it stops the GCS. It also gets a small plane simulator (SITL) for your laptop, in case the organisers' planes can't be reached.
+
+**No internet at the workshop?** The organisers' laptop has a copy of everything: use the same line with the address we write on the board instead of GitHub's, e.g. `curl -LsSf http://<address>:8080/setup/start.sh | sh` or, on Windows, `powershell -ExecutionPolicy ByPass -c "irm http://<address>:8080/setup/start.ps1 | iex"`. Anything the laptop doesn't have still comes from the internet.
+
+**Windows with WSL?** The Linux line works inside WSL too; open [http://localhost:5000](http://localhost:5000) in your Windows browser.
 
 **Run it again whenever you like**, e.g. to start the GCS the next day: it only does what is still missing, and never touches your code. Once it's installed you can also start it from the folder: double-click `setup\start.bat` (Windows) or run `sh ~/ardupilot-workshop/setup/start.sh` (Linux).
 

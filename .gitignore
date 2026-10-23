@@ -1,3 +1,5 @@
 # The local fallback SITL that setup/start.py downloads (a binary, never committed)
 /sitl/
 __pycache__/
+# The offline copy of the setup downloads (setup/prepare_offline.py), served by the game server at /setup/
+/offline/

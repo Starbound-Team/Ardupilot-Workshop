@@ -98,7 +98,8 @@ def stop_on_signal(signum, frame):
 
 
 signal.signal(signal.SIGTERM, stop_on_signal)
-signal.signal(signal.SIGHUP, stop_on_signal)
+if hasattr(signal, "SIGHUP"): # The terminal closing; Windows has no such signal
+    signal.signal(signal.SIGHUP, stop_on_signal)
 
 print(f"Hosting up to {args.max} planes at {ip} for {args.server}, from {args.ardupilot}. Ctrl+C stops them.", flush=True)
 reachable = None

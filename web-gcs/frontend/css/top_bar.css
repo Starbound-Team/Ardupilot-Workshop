@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&display=swap');
+@import url('/vendor/fonts/fonts.css'); /* Poppins and Playfair Display, from this laptop */
 * {
     margin: 0;
     padding: 0;
@@ -106,6 +105,7 @@ body {
 .nav-links .logo-img {
     width: 85px; /* Increased from 75px to 85px */
     height: 85px; /* Increased from 75px to 85px */
+    object-fit: contain; /* The logo isn't square: keep its shape inside the square */
     margin-right: 15px;
     cursor: pointer;
 }

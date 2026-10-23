@@ -1,0 +1,5 @@
+# The workshop launch point (as in backend/local_sitl.py)
+SIM_OPOS_LAT 39.360886
+SIM_OPOS_LNG 22.945749
+SIM_OPOS_ALT 0
+SIM_OPOS_HDG 0

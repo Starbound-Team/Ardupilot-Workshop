@@ -1,0 +1,2 @@
+# Copies of web libraries, kept byte for byte: the pages check some of them against integrity hashes
+web-gcs/vendor/** -text

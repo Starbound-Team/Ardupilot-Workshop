@@ -1,7 +1,8 @@
 """
 Sets up whatever is still missing for the ArduPilot workshop, then starts the GCS.
 Safe to run again at any time: every step checks first and skips what is already done,
-and code that is already there is never touched (your workshop.py stays as it is).
+and code that is already there is never touched (your workshop.py stays as it is). An older workshop's
+code found there (no toolkit.py) is moved aside to ardupilot-workshop-old, not deleted.
 
 Normally started by start.sh (Linux) or start.ps1 / start.bat (Windows), which get uv first.
 Runs on any Python 3.8+ without uv too, using venv and pip instead.
@@ -43,6 +44,9 @@ SITL_FILES_WINDOWS = dict([(os.path.join("build", "sitl", "bin", name), WINDOWS_
     "ArduPlane.elf", "cygwin1.dll", "cygatomic-1.dll", "cyggcc_s-1.dll", "cyggcc_s-seh-1.dll", "cyggomp-1.dll",
     "cygiconv-2.dll", "cygintl-8.dll", "cygquadmath-0.dll", "cygssp-0.dll", "cygstdc++-6.dll")] + [SITL_DEFAULTS])
 WINDOWS = os.name == "nt"
+# Set by start.sh / start.ps1 when they came from the organisers' laptop (http://<server>:8080/setup/): the code,
+# packages and plane from there first (no internet needed), the internet for anything it doesn't have
+MIRROR = os.environ.get("WORKSHOP_MIRROR", "").rstrip("/")
 
 parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
 parser.add_argument("--dir", default=os.path.join(os.path.expanduser("~"), "ardupilot-workshop"),
@@ -97,22 +101,36 @@ def run(command, what):
 
 # --- 1. The code ---
 def get_code():
-    if os.path.isfile(os.path.join(backend, "app.py")):
+    if os.path.isfile(os.path.join(backend, "toolkit.py")):
         done(f"Code: in {workshop}")
         return
+    if os.path.isfile(os.path.join(backend, "app.py")):
+        # An older workshop's code (last year's, or a clone from before toolkit.py): keep it, out of the way
+        old = workshop + "-old"
+        n = 2
+        while os.path.exists(old):
+            old, n = f"{workshop}-old{n}", n + 1
+        os.rename(workshop, old)
+        done(f"Found an older workshop's code there: moved it to {old} (nothing deleted)")
     if os.path.exists(workshop) and os.listdir(workshop):
         fail(f"{workshop} already exists but has no workshop code in it. Move it away, or pick another folder with --dir.")
 
-    doing(f"Getting the code from {args.source}")
-    try:
-        if os.path.isfile(args.source):
-            with open(args.source, "rb") as f:
-                data = f.read()
-        else:
-            with urllib.request.urlopen(args.source, timeout=60) as response:
-                data = response.read()
-    except Exception as e:
-        fail(f"Could not get the code ({e}). Check the internet connection and run this again.")
+    sources = ([MIRROR + "/code/main.zip"] if MIRROR and args.source == CODE_ZIP else []) + [args.source]
+    data = None
+    for source in sources:
+        doing(f"Getting the code from {source}")
+        try:
+            if os.path.isfile(source):
+                with open(source, "rb") as f:
+                    data = f.read()
+            else:
+                with urllib.request.urlopen(source, timeout=60) as response:
+                    data = response.read()
+            break
+        except Exception as e:
+            problem = e
+    if data is None:
+        fail(f"Could not get the code ({problem}). Check the internet connection and run this again.")
 
     # GitHub's zips have everything inside one top folder (ardupilot-workshop-main/): unpack it, then move that
     with tempfile.TemporaryDirectory() as unpacked:
@@ -150,10 +168,13 @@ def get_python_and_packages():
         else:
             run([sys.executable, "-m", "venv", venv], "Making the Python environment")
     doing("Installing the packages the GCS needs")
-    if uv:
-        run([uv, "pip", "install", "--python", venv_python, "-r", requirements], "Installing the packages")
+    install = [uv, "pip", "install", "--python", venv_python] if uv else [venv_python, "-m", "pip", "install"]
+    if MIRROR and subprocess.call(install + ["--no-index", "--find-links", MIRROR + "/wheels/", "-r", requirements]) == 0:
+        pass # All from the organisers' laptop
     else:
-        run([venv_python, "-m", "pip", "install", "-r", requirements], "Installing the packages")
+        if MIRROR:
+            skipped("Not all packages on the organisers' laptop: from the internet instead")
+        run(install + ["-r", requirements], "Installing the packages")
     if not packages_ok():
         fail("The packages installed, but the GCS still can't import them. Ask an organiser.")
     done("Python and packages: ready")
@@ -195,7 +216,8 @@ def get_local_sitl():
                 target = os.path.join(sitl, path)
                 os.makedirs(os.path.dirname(target), exist_ok=True)
                 data = None
-                for source in (SITL_MIRROR + os.path.basename(path), url):
+                laptop = [f"{MIRROR}/sitl/{os.path.basename(path)}"] if MIRROR else []
+                for source in laptop + [SITL_MIRROR + os.path.basename(path), url]:
                     try:
                         with urllib.request.urlopen(source, timeout=60) as response:
                             data = response.read()

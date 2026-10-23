@@ -121,7 +121,7 @@ function showToast(message, type = 'info', duration = 3000) {
         default: background = "#007bff"; // info
     }
 
-    // Toastify comes from a CDN; if it is blocked (ad blocker, offline), log instead
+    // Toastify comes from /vendor; if it is missing or blocked (ad blocker), log instead
     // so the button that called us still does its job
     if (typeof Toastify === 'undefined') {
         console.log(`[${type}] ${message}`);
@@ -801,11 +801,17 @@ function updateTelemetry(data) {
         const lat = data.lat;
         const lon = data.lon;
 
-        if (typeof lat === 'number' && typeof lon === 'number') {
+        // Until its GPS has a fix, SITL says it's at 0, 0 (the middle of the world): ignore that
+        if (typeof lat === 'number' && typeof lon === 'number' && (Math.abs(lat) > 0.01 || Math.abs(lon) > 0.01)) {
             const droneLatLng = [lat, lon];
 
             // The plane is an arrow pointing where its nose points, like on the live map
             if (droneMarker) {
+                // A jump (GPS fix, put down at its corner, Reset SITL): follow it, without a trail line across the map
+                if (map.distance(droneMarker.getLatLng(), droneLatLng) > 500) {
+                    clearTrail();
+                    map.panTo(droneLatLng);
+                }
                 droneMarker.setLatLng(droneLatLng);
             } else {
                 droneMarker = L.marker(droneLatLng, {
