@@ -176,7 +176,10 @@ def get_local_sitl():
             for member in archive.getmembers():
                 if member.name.startswith("/") or ".." in member.name.split("/"):
                     raise ValueError(f"unexpected path in the archive: {member.name}")
-            archive.extractall(sitl)
+            if hasattr(tarfile, "data_filter"): # Python 3.12+: the safe way, and no warning
+                archive.extractall(sitl, filter="data")
+            else:
+                archive.extractall(sitl)
         os.chmod(sitl_binary, 0o755)
     except Exception as e:
         skipped(f"Local SITL: could not get it ({e}). Not needed while the organisers' planes work; run this again later")

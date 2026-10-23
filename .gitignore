@@ -1,2 +1,3 @@
 # The local fallback SITL that setup/start.py downloads (a binary, never committed)
 /sitl/
+__pycache__/
