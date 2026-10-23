@@ -228,7 +228,13 @@ def approach(my_vehicle, landmark, turning_circle=False):
     Lines the plane up for a photo of landmark (part 5): flies through get_approach_points, then returns.
     Point the plane at landmark.loc straight after it (my_vehicle.simple_goto(landmark.loc)) and watch for the photo.
     Returns straight away if the plane is already lined up. turning_circle: see get_approach_points.
+    Switches the plane to GUIDED first (straight after Takeoff it's still in TAKEOFF mode, which ignores simple_goto).
     """
+    if my_vehicle.mode.name != "GUIDED":
+        my_vehicle.mode = VehicleMode("GUIDED")
+        start = time.time()
+        while my_vehicle.mode.name != "GUIDED" and time.time() - start < 10:
+            time.sleep(0.2)
     position, heading = my_vehicle.location.global_relative_frame, my_vehicle.heading
     points = get_approach_points(landmark, position, heading, turning_circle)
     for point in points:
