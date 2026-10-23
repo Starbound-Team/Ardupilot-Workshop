@@ -11,6 +11,7 @@ import shutil
 import subprocess
 
 LAUNCH = (39.360886, 22.945749, 0, 0) # The workshop launch point: lat, lon, altitude, heading
+WINDOWS = os.name == "nt"
 BASE_PORT = 5760 # Instance N listens on BASE_PORT + 10 * N
 
 
@@ -29,7 +30,8 @@ def ardupilot_folders():
 
 
 def binary(ardupilot):
-    return os.path.join(ardupilot, "build", "sitl", "bin", "arduplane")
+    """The plane program in an ArduPilot folder. ArduPilot's Windows build is ArduPlane.elf, with its cyg*.dll files next to it."""
+    return os.path.join(ardupilot, "build", "sitl", "bin", "ArduPlane.elf" if WINDOWS else "arduplane")
 
 
 def find_ardupilot():
@@ -56,10 +58,36 @@ def start_plane(ardupilot, instance, folder, log):
         f.write("SIM_OPOS_LAT {}\nSIM_OPOS_LNG {}\nSIM_OPOS_ALT {}\nSIM_OPOS_HDG {}\n".format(*LAUNCH))
     defaults = os.path.join(ardupilot, "Tools", "autotest", "models", "plane.parm") + ",start.parm"
     command = [binary(ardupilot), "--model", "plane", "--speedup", "1", "-w", "--defaults", defaults, f"-I{instance}"]
+    if WINDOWS:
+        # Its own process group without a console: Ctrl+C in the GCS window doesn't reach it. (Tested under Wine
+        # only: there it quits when its GCS disconnects, and the next Connect starts a new one.)
+        return subprocess.Popen(command, cwd=folder, stdout=log, stderr=subprocess.STDOUT,
+                                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS)
     # SITL quits as soon as the process that started it is gone, so a small shell stays in between as its parent:
     # the plane then keeps running when the GCS backend restarts (every save of workshop.py restarts it)
     return subprocess.Popen(["sh", "-c", '"$@"; exit $?', "sh"] + command, cwd=folder, stdout=log,
                             stderr=subprocess.STDOUT, start_new_session=True)
+
+
+def is_running(pid):
+    """True if the plane started with process id pid still runs."""
+    if WINDOWS:
+        # Not os.kill(pid, 0): on Windows that ends the process instead of checking it
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(0x1000, False, pid) # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return False
+        code = ctypes.c_ulong()
+        alive = kernel32.GetExitCodeProcess(handle, ctypes.byref(code)) and code.value == 259 # STILL_ACTIVE
+        kernel32.CloseHandle(handle)
+        return bool(alive)
+    try:
+        os.kill(pid, 0)
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            return b"arduplane" in f.read()
+    except OSError:
+        return False
 
 
 def listening(log_path, log_from=0):

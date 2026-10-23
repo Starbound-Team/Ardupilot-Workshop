@@ -150,11 +150,9 @@ def own_sitl_running():
     try:
         with open(os.path.join(SITL_FOLDER, 'pid')) as f:
             pid = int(f.read())
-        os.kill(pid, 0)
-        with open(f'/proc/{pid}/cmdline', 'rb') as f:
-            return b'arduplane' in f.read()
     except (OSError, ValueError):
         return False
+    return local_sitl.is_running(pid)
 
 
 def local_plane():

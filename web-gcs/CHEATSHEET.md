@@ -272,6 +272,7 @@ take_photo()                        # True if it sold; if not, it prints why
 ```
 
 - The game checks where your plane **really** is and where it **really** points, so check `can_photograph` first and only then `take_photo()`.
+- The **Take photo** button is yours too (`### if ...` in `workshop.py`): let it shoot only when `can_photograph` says yes, and a click can never waste the camera. The whole GCS is yours to tailor like that.
 - ⚠️ **A photo that doesn't count costs you:** the camera needs 3 seconds before the next one (the cone on the map turns grey). The photo zone only lasts about 6 seconds as you fly through it, so a wasted shot can cost you the pass.
 - Check often while you fly in: the plane covers 20 m every second, so `time.sleep(0.2)` rather than `time.sleep(1)`.
 - After a sale, the landmark disappears from your list.

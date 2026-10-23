@@ -26,14 +26,22 @@ import zipfile
 PYTHON_VERSION = "3.12" # The Python the GCS runs on, downloaded by uv (every package has ready-made builds for it)
 CODE_ZIP = "https://github.com/starbound-team/ardupilot-workshop/archive/refs/heads/main.zip"
 GCS_URL = f"http://localhost:{os.environ.get('GCS_PORT', 5000)}" # GCS_PORT: the same setting as app.py's
-# The fallback plane for this laptop: ArduPilot's own SITL build of ArduPlane 4.7.2 (static, runs on any 64-bit Linux)
-# and its defaults, laid out like an ArduPilot folder so the backend's local_sitl.py finds it in <workshop>/sitl
-SITL_FILES = {
-    os.path.join("build", "sitl", "bin", "arduplane"):
-        "https://firmware.ardupilot.org/Plane/stable-4.7.2/SITL_x86_64_linux_gnu/arduplane",
-    os.path.join("Tools", "autotest", "models", "plane.parm"):
-        "https://raw.githubusercontent.com/ArduPilot/ardupilot/Plane-4.7.2/Tools/autotest/models/plane.parm",
-}
+# The fallback plane for this laptop, from ArduPilot itself, laid out like an ArduPilot folder so the backend's
+# local_sitl.py finds it in <workshop>/sitl. Linux: ArduPlane 4.7.2's SITL build (static, runs on any 64-bit Linux).
+# Windows: the build Mission Planner uses (PlaneStable, a Cygwin program with its DLLs).
+SITL_DEFAULTS = (os.path.join("Tools", "autotest", "models", "plane.parm"),
+                 "https://raw.githubusercontent.com/ArduPilot/ardupilot/Plane-4.7.2/Tools/autotest/models/plane.parm")
+SITL_FILES_LINUX = dict([
+    (os.path.join("build", "sitl", "bin", "arduplane"),
+     "https://firmware.ardupilot.org/Plane/stable-4.7.2/SITL_x86_64_linux_gnu/arduplane"),
+    SITL_DEFAULTS])
+WINDOWS_SITL = "https://firmware.ardupilot.org/Tools/MissionPlanner/sitl/PlaneStable/"
+# The same files as tested for the workshop, kept on the workshop's GitHub (ArduPilot's PlaneStable folder changes
+# with every release). Tried first; ArduPilot's own servers if it can't be reached.
+SITL_MIRROR = "https://github.com/starbound-team/ardupilot-workshop/releases/download/sitl-2026-10/"
+SITL_FILES_WINDOWS = dict([(os.path.join("build", "sitl", "bin", name), WINDOWS_SITL + name) for name in (
+    "ArduPlane.elf", "cygwin1.dll", "cygatomic-1.dll", "cyggcc_s-1.dll", "cyggcc_s-seh-1.dll", "cyggomp-1.dll",
+    "cygiconv-2.dll", "cygintl-8.dll", "cygquadmath-0.dll", "cygssp-0.dll", "cygstdc++-6.dll")] + [SITL_DEFAULTS])
 WINDOWS = os.name == "nt"
 
 parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
@@ -52,7 +60,7 @@ backend = os.path.join(workshop, "web-gcs", "backend")
 venv = os.path.join(backend, "venv")
 venv_python = os.path.join(venv, "Scripts", "python.exe") if WINDOWS else os.path.join(venv, "bin", "python")
 sitl = os.path.join(workshop, "sitl")
-sitl_binary = os.path.join(sitl, "build", "sitl", "bin", "arduplane")
+sitl_binary = os.path.join(sitl, "build", "sitl", "bin", "ArduPlane.elf" if WINDOWS else "arduplane")
 
 
 def done(message):
@@ -164,8 +172,8 @@ def sitl_runs():
 
 def get_local_sitl():
     """Optional: everything works without it as long as the organisers' planes can be reached, so it never stops the setup."""
-    if WINDOWS or sys.platform != "linux" or platform.machine() not in ("x86_64", "AMD64"):
-        skipped("Local SITL: not available on this system yet (you fly the organisers' planes)")
+    if platform.machine() not in ("x86_64", "AMD64") or not (WINDOWS or sys.platform == "linux"):
+        skipped("Local SITL: not available on this system (you fly the organisers' planes)")
         return
     if sitl_runs():
         done("Local SITL: ready")
@@ -182,16 +190,25 @@ def get_local_sitl():
                 else:
                     archive.extractall(sitl)
         else:
-            doing("Getting a SITL plane for this laptop from ArduPilot (ArduPlane 4.7.2, about 7 MB)")
-            for path, url in SITL_FILES.items():
+            doing(f"Getting ArduPilot's SITL plane for this laptop (about {18 if WINDOWS else 7} MB)")
+            for path, url in (SITL_FILES_WINDOWS if WINDOWS else SITL_FILES_LINUX).items():
                 target = os.path.join(sitl, path)
                 os.makedirs(os.path.dirname(target), exist_ok=True)
-                with urllib.request.urlopen(url, timeout=60) as response:
-                    data = response.read()
+                data = None
+                for source in (SITL_MIRROR + os.path.basename(path), url):
+                    try:
+                        with urllib.request.urlopen(source, timeout=60) as response:
+                            data = response.read()
+                        break
+                    except Exception as e:
+                        problem = e
+                if data is None:
+                    raise problem
                 with open(target + ".part", "wb") as f: # Only a complete download gets the real name
                     f.write(data)
                 os.replace(target + ".part", target)
-        os.chmod(sitl_binary, 0o755)
+        if not WINDOWS:
+            os.chmod(sitl_binary, 0o755)
     except Exception as e:
         skipped(f"Local SITL: could not get it ({e}). Not needed while the organisers' planes work; run this again later")
         return
