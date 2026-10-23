@@ -186,10 +186,16 @@ def capture(my_vehicle, landmark):
     ### approach(...)
 
     #Point the plane at the landmark (no waiting this time)
+    ### my_vehicle...
 
     #Until the photo sells or we have flown past the landmark:
     #    if can_photograph(...): take_photo() returns True if it sold
     #    check often, the plane covers 20 m every second
+
+    ### while ...
+    ###
+    ###     time.sleep(0.2)
+    print(f"Missed {landmark.name}")
 
     pass
 
