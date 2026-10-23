@@ -101,10 +101,21 @@ function initMap() {
       }).setView([39.36, 22.94], 5); // Start relatively zoomed out
 
     // Add OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+    const onlineTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution
     }).addTo(map);
+    // Without internet: our own map of the Volos area (web-gcs/vendor/osm-tiles, zoom 10-17, stretched closer in)
+    let tileErrors = 0;
+    onlineTiles.on('tileerror', () => {
+        if (++tileErrors === 3) {
+            map.removeLayer(onlineTiles);
+            L.tileLayer('/vendor/osm-tiles/{z}/{x}/{y}.png', {
+                minZoom: 10, maxZoom: 19, maxNativeZoom: 17, bounds: [[39.345, 22.909], [39.388, 22.981]], attribution
+            }).addTo(map);
+        }
+    });
 
     console.log("Map initialized");
 }
