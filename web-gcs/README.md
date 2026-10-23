@@ -24,7 +24,7 @@ This project is a web-based application designed to act as a simple Ground Contr
 * **Right-click map menu:** Go to a point, Add / Clear waypoints, Return to home (the plane circles above it), Land here.
 * **Workshop buttons:** every `@button("...")` function in `backend/workshop.py` gets a button in the top bar, plus **Stop**. One runs at a time.
 * **Landmarks** on the map, each with its photo zone shaded.
-* **Workshop exercises:** filled in during the workshop in `backend/workshop.py`, following `CHEATSHEET.md`. Ready-made helpers (measuring, landmarks, photos, buttons) are in `backend/game.py`.
+* **Workshop exercises:** filled in during the workshop in `backend/workshop.py`, following `CHEATSHEET.md`. Ready-made helpers (measuring, landmarks, photos, buttons) are in `backend/toolkit.py`.
 
 ## 💻 Tech Stack
 

@@ -55,8 +55,11 @@ def start_plane(ardupilot, instance, folder, log):
     with open(os.path.join(folder, "start.parm"), "w") as f:
         f.write("SIM_OPOS_LAT {}\nSIM_OPOS_LNG {}\nSIM_OPOS_ALT {}\nSIM_OPOS_HDG {}\n".format(*LAUNCH))
     defaults = os.path.join(ardupilot, "Tools", "autotest", "models", "plane.parm") + ",start.parm"
-    return subprocess.Popen([binary(ardupilot), "--model", "plane", "--speedup", "1", "-w", "--defaults", defaults,
-                             f"-I{instance}"], cwd=folder, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    command = [binary(ardupilot), "--model", "plane", "--speedup", "1", "-w", "--defaults", defaults, f"-I{instance}"]
+    # SITL quits as soon as the process that started it is gone, so a small shell stays in between as its parent:
+    # the plane then keeps running when the GCS backend restarts (every save of workshop.py restarts it)
+    return subprocess.Popen(["sh", "-c", '"$@"; exit $?', "sh"] + command, cwd=folder, stdout=log,
+                            stderr=subprocess.STDOUT, start_new_session=True)
 
 
 def listening(log_path, log_from=0):

@@ -21,38 +21,50 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend"))
-from local_sitl import BASE_PORT, binary, listening, start_plane # noqa: E402
+from local_sitl import BASE_PORT, binary, find_ardupilot, listening, start_plane # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("server", help="Game server address, e.g. http://192.168.1.50:8080")
 parser.add_argument("--key", required=True, help="The organiser key the server printed")
 parser.add_argument("--max", type=int, default=10, help="How many planes this laptop may run")
 parser.add_argument("--ip", help="This laptop's address as participants reach it (found by itself if left out)")
-parser.add_argument("--ardupilot", default=os.path.expanduser("~/.ardupilot/ardupilot"),
-                    help="ArduPilot folder with the plane built (build/sitl/bin/arduplane)")
+parser.add_argument("--ardupilot", help="ArduPilot folder with the plane built (build/sitl/bin/arduplane). Found by "
+                    "itself if left out: the setup script's sitl/ folder, $ARDUPILOT_DIR, ~/.ardupilot/ardupilot, ~/ardupilot")
 args = parser.parse_args()
 
-if not os.path.exists(binary(args.ardupilot)):
+if args.ardupilot is None:
+    args.ardupilot, problem = find_ardupilot()
+    if args.ardupilot is None:
+        sys.exit(f"No plane to host: {problem}. Run the setup script on this laptop first (it gets one)")
+elif not os.path.exists(binary(args.ardupilot)):
     sys.exit(f"No plane built at {binary(args.ardupilot)}: build it with  ./waf configure --board sitl && ./waf plane")
 folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "planes")
 agent_id = uuid.uuid4().hex[:8]
 
 
 def local_ip():
-    """This laptop's address on the local network (no data is actually sent)."""
+    """
+    This laptop's address as seen from the game server's network: the one it uses to reach the server, which
+    is the one participants next to the server can reach too (no data is actually sent). Works without internet
+    and with a VPN. A server on the internet (not on this network) needs --ip.
+    """
+    server = urllib.parse.urlparse(args.server).hostname or "8.8.8.8"
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         try:
-            s.connect(("8.8.8.8", 80))
+            s.connect((server, 80))
             return s.getsockname()[0]
         except OSError:
             return "127.0.0.1"
 
 
 ip = args.ip or local_ip()
+if ip.startswith("127.") and not args.ip:
+    print(f"Warning: found only {ip}, which participants can't reach. Pass this laptop's address with --ip", flush=True)
 planes = {} # instance -> {"process", "log", "log_from"}
 
 
@@ -88,7 +100,7 @@ def stop_on_signal(signum, frame):
 signal.signal(signal.SIGTERM, stop_on_signal)
 signal.signal(signal.SIGHUP, stop_on_signal)
 
-print(f"Hosting up to {args.max} planes at {ip} for {args.server}. Ctrl+C stops them.", flush=True)
+print(f"Hosting up to {args.max} planes at {ip} for {args.server}, from {args.ardupilot}. Ctrl+C stops them.", flush=True)
 reachable = None
 try:
     while True:

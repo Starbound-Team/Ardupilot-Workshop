@@ -1,10 +1,10 @@
 #Your code for the workshop. Fill it in part by part; the cheat sheet says what each part needs.
-#Everything you get ready-made (measuring, landmarks, photos, buttons) is in game.py.
+#Everything you get ready-made (measuring, lining up, landmarks, photos, buttons) is in toolkit.py.
 import math
 import time
 
 from dronekit import VehicleMode, LocationGlobalRelative
-from game import *
+from toolkit import *
 
 #The game and the map on the projector
 #Your name on the map, keep it short and different from everyone else's
@@ -24,27 +24,32 @@ def take_off(my_vehicle, target_altitude):
     #A plane takes off in TAKEOFF mode: once armed it speeds up, lifts off
     #and climbs straight ahead to the altitude in the TKOFF_ALT parameter
 
-    #set the takeoff altitude here (the parameter is my_vehicle.parameters['TKOFF_ALT'])
-
+    #the plane should fly to the target_altitude, that the gcs will pass it
+    #my_vehicle.parameters['TKOFF_ALT'] = ###
+    
     #set vehicle mode to TAKEOFF here
+    ### my_vehicle.mode = ...
 
     time.sleep(1)
 
     #arm vehicle motors here
+    ### my_vehicle...
 
     #fill this so we wait for the vehicle to arm
-    #while ...
+    ### while ...
     #    print(" Waiting for arming...")
     #    time.sleep(1)
 
-    #There is no takeoff command: armed in TAKEOFF mode, the plane goes by itself.
-    #The code below waits until it has climbed, because on the runway it can't do anything else
-    #(we assume something is wrong if it hasn't climbed after a minute)
+    #Armed in TAKEOFF mode, the plane goes by itself. The code below waits until it has climbed,
+    #because on the runway, it can't do anything else.
     start_time = time.time()
     while my_vehicle.location.global_relative_frame.alt < target_altitude * 0.9:
+        
+        #(we assume something is wrong if it hasn't climbed after a minute)
         if time.time() - start_time > 60:
             raise TimeoutError("The plane didn't climb. Is it armed and in TAKEOFF mode?")
         print(f" Climbing, altitude {my_vehicle.location.global_relative_frame.alt:.1f} m")
+        
         time.sleep(1)
 
 
@@ -56,29 +61,37 @@ def fly_to(my_vehicle, location):
     if my_vehicle.mode.name != "GUIDED":
 
         #Set mode to guided here
+        ### my_vehicle...
 
         #Code below waits for mode change
-        #(we assume it failed after a certain time)
         start_time = time.time()
         while my_vehicle.mode.name != "GUIDED":
+
+            #we assume it failed after a certain time
             if time.time() - start_time > 10:
                 raise TimeoutError("Timeout setting mode to GUIDED")
+            
             time.sleep(0.5)
 
     #Send the plane to location here
+    ### my_vehicle...
 
-    #A plane can't stop or turn on the spot: it passes a point 25 m away or more,
-    #and if it misses it circles about 50 m around it, so "arrived" has to mean "within 60 m"
-    arrived_distance = 60.0
+    #A plane can't stop or turn on the spot: it passes a point 25 m at best,
+    #(default behaviour in guided mode) and if it misses it circles about 50 m around it.
+    # We count being within 60m of a point as close enough to say the plane reached it
+    #(under 50 the plane may circle forever)
+    reach_distance = 60.0
 
-    #Wait until we have arrived: uncomment the two loop lines (while True and time.sleep) and fill in the rest
+    #Wait until we have arrived
     #while True:
         #Get the plane's current location here
+        ### current = my_vehicle...
 
         #Get the distance to location here
+        #distance = get_distance_meters(current, location)
 
-        #fill the code so we leave while True once we are closer than arrived_distance
-        #if ...
+        #we should leave the while True loop once we are at reach of the point
+        ### if ...
         #    break
 
         #We will check the distance every second
@@ -106,7 +119,9 @@ def simple_mission(my_vehicle):
         return
 
     #Fly to every waypoint in turn here
-    #for ... in ...:
+    ### for ... in enumerate(...):
+    #    print(f"Going to waypoint {i+1}")
+    ###    
 
     print("All waypoints travelled!")
 
@@ -119,45 +134,47 @@ def can_photograph(position, heading, landmark):
 
     #1. The distance from the landmark is between landmark.inner and landmark.outer
 
+    ### distance = ...
+    ### if distance < ... or distance > ...
+    #    return False
+
     #2. We are on the right side: the direction from the landmark to us
     #   is at most landmark.view_width / 2 away from landmark.approach_from
+    
+    ### side = get_direction_degrees(...)
+    #if get_angle_between(side, landmark.approach_from) > landmark.view_width / 2:
+    #    return False
 
     #3. We are facing it: the direction from us to the landmark
     #   is at most FIELD_OF_VIEW / 2 away from heading
+    
+    ### to_landmark = get_direction_degrees(...)
+    #if get_angle_between(to_landmark, heading) > FIELD_OF_VIEW / 2:
+    #    return False
 
-    return False
+    return True
 
 
-#---------- Part 5: Lining up ----------
+#---------- Part 5: Lining up (ready-made) ----------
 
-def get_approach_point(landmark, position):
+#A plane can't stop or turn on the spot, so before a photo it has to line up: get onto the landmark's
+#photo side, pointing at it, far enough out to be flying straight again by the time it gets there.
+#approach(my_vehicle, landmark) in toolkit.py does that for you; nothing to write in this part.
+#Try it: right-click near a landmark and pick "Line up for this landmark".
 
-    #Where to turn in towards the landmark: a point on the line it must be approached along
-    #(direction landmark.approach_from from it), far enough out that the plane is straight again
-    #before it gets close. The more the plane turns there, the further out it has to be.
-
-    #1. A first guess, 300 m out along that line
-
-    #2. turn = how much the plane turns at the guess: the angle between
-    #   (direction from position to the guess) and (direction from the guess to the landmark)
-
-    #3. How far the turn swings the plane sideways (given):
-    #   swing = SWING_METERS * (1 - math.cos(math.radians(turn)))
-
-    #4. How far out the point must be so that swing still leaves us on the right side (given):
-    #   distance = swing / math.tan(math.radians(landmark.view_width / 2 - 10)) + 60
-    #   but at least landmark.outer + 50
-
-    #5. Return the point that far out along the line
-
-    return landmark.loc
+@button("Line up for this landmark")
+def line_up_here(my_vehicle, location):
+    landmark = min(get_known_landmarks(), key=lambda l: get_distance_meters(location, l.loc))
+    approach(my_vehicle, landmark)
+    my_vehicle.simple_goto(landmark.loc)
 
 
 #---------- Part 6: Photographing a landmark ----------
 
-#Already working: for when you fly there yourself
+#This button will appear at the ribbon on top of the page; allows you to take a photo manually
 @button("Take photo")
 def photo(my_vehicle):
+    ### if ...
     take_photo()
 
 
@@ -165,7 +182,8 @@ def photo(my_vehicle):
 
 def capture(my_vehicle, landmark):
 
-    #Fly to the approach point
+    #Line up for the landmark (ready-made, part 5)
+    ### approach(...)
 
     #Point the plane at the landmark (no waiting this time)
 

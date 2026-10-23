@@ -2,7 +2,7 @@
 
 Everything you need for `backend/workshop.py`, part by part. Each part lists what's **new** in it; everything from the parts before still applies. In the workshop functions the plane is called `my_vehicle`.
 
-Things that are already written for you live in `backend/game.py`. You can read it, but don't change it.
+Everything that's already written for you is in `backend/toolkit.py`, grouped by topic, with the part that needs it next to each one. You can read it, but don't change it.
 
 > Saving `workshop.py` restarts the backend, and the GCS reconnects by itself. A mistake in the file shows up as a message with its line number: fix it and save.
 
@@ -93,7 +93,7 @@ my_vehicle.simple_goto(target)                           # only works in GUIDED 
 ### How far away is it?
 
 ```python
-get_distance_meters(location1, location2)   # metres between two locations (in game.py)
+get_distance_meters(location1, location2)   # metres between two locations (in toolkit.py)
 ```
 
 ### 🧩 Python: leaving a loop early
@@ -221,31 +221,42 @@ All three at once:
 
 ---
 
-## Part 5: Lining up
+## Part 5: Lining up (ready-made)
 
-**New:** `get_location_from`, why a plane needs room to turn, `math.cos` / `math.tan`.
+**New:** `approach()`, why a plane needs room to turn. Nothing to write in this part.
 **From earlier:** directions and landmarks (4).
+
+A plane can't stop or turn on the spot. To photograph a landmark from the right side, it has to **line up** first: get onto the photo side, pointing at the landmark, far enough out to be flying straight again by the time it gets there.
+
+```python
+approach(my_vehicle, landmark)          # flies the plane until it's lined up for landmark, then returns
+my_vehicle.simple_goto(landmark.loc)    # then point it at the landmark and watch for the photo
+```
+
+Try it: right-click near a landmark → **Line up for this landmark**.
+
+### What `approach()` does
+
+```
+                 approach line (out from the landmark, in the direction approach_from)
+   point ●───────────────────────────────────── ★ landmark
+         ↑ the plane turns in here, far enough out to be straight before the photo zone
+```
+
+- **Already lined up?** It doesn't add anything: the plane flies straight in.
+- Otherwise it sends the plane to **one point on the approach line**. The more the plane has to turn there, the further out the point is: a turn swings the plane sideways (about `SWING_METERS`, 55 m, for 90°, twice that for a U-turn), and it has to be straight again before the photo zone.
+- **Too close to turn round?** The point moves further out, so the plane has room.
+- `approach(my_vehicle, landmark, turning_circle=True)`: when the plane has to turn round, it follows a circle the size of its own turn instead, like a pilot's procedure turn. Measured: about 6–9 s quicker when turning round, but from straight behind it sometimes misses. Your call.
+- `get_approach_points(landmark, position, heading)` gives you the points without flying them, e.g. to draw or time a route. `is_lined_up(landmark, position, heading)` tells you if the plane can go straight in.
+
+All of it is in `toolkit.py`, written to be read.
 
 ### A point some distance away in some direction
 
+Handy for your own strategies (part 7), e.g. to wait somewhere near where landmarks appear:
+
 ```python
 get_location_from(location, distance, direction)   # 300 m east of a landmark: (landmark.loc, 300, 90)
-```
-
-### Why line up far out?
-
-A plane turning towards something swings sideways while it turns: about `SWING_METERS` (55 m) for a 90° turn, twice that for a U-turn. If it turns in close to the landmark, it arrives at an angle, on the wrong side or not facing it. So turn in at a point **on the approach line, far enough out** to be straight again before the photo zone, and fly straight in from there.
-
-```python
-swing = SWING_METERS * (1 - math.cos(math.radians(turn)))          # sideways swing of a turn of `turn` degrees
-distance = swing / math.tan(math.radians(landmark.view_width / 2 - 10)) + 60   # far enough out
-```
-
-### 🧩 Python: maths
-
-```python
-math.cos(math.radians(60))   # 0.5. Python's cos and tan want radians, so convert degrees first
-max(a, b)                    # the bigger one: max(distance, 200) is at least 200
 ```
 
 ---
@@ -253,7 +264,7 @@ max(a, b)                    # the bigger one: max(distance, 200) is at least 20
 ## Part 6: Photographing landmarks
 
 **New:** `get_known_landmarks()`, `take_photo()`, picking from a list. Buttons already there: **Take photo** (top bar) and **Capture this landmark** (right-click near one, once `capture` is written).
-**From earlier:** `fly_to` (2), `@button` (3), `can_photograph` (4), `get_approach_point` (5).
+**From earlier:** `fly_to` (2), `@button` (3), `can_photograph` (4), `approach` (5).
 
 ```python
 landmarks = get_known_landmarks()   # list of Landmark you can photograph now
@@ -264,7 +275,7 @@ take_photo()                        # True if it sold; if not, it prints why
 - ⚠️ **A photo that doesn't count costs you:** the camera needs 3 seconds before the next one (the cone on the map turns grey). The photo zone only lasts about 6 seconds as you fly through it, so a wasted shot can cost you the pass.
 - Check often while you fly in: the plane covers 20 m every second, so `time.sleep(0.2)` rather than `time.sleep(1)`.
 - After a sale, the landmark disappears from your list.
-- Flown past it without a photo? Start over from the approach point. If you're very close to a landmark, fly away first.
+- Flown past it without a photo? Call `approach()` again: it works out a new way in from wherever the plane is.
 
 ### 🧩 Python: the nearest one
 
@@ -292,32 +303,43 @@ Put the address from the board in `GAME_SERVER_URL` at the top of `workshop.py` 
 
 ## Part 7: Your strategies
 
-**New:** flying time, other planes.
+**New:** how long a plane needs, other planes, time left, your score.
 **From earlier:** everything.
 
 ### How long will it take?
 
 ```python
-get_turn_meters(heading, direction)   # extra metres for turning from heading onto direction
-CRUISE_SPEED                          # 20 m/s
+here = my_vehicle.location.global_relative_frame
+get_eta(here, my_vehicle.heading, landmark)   # seconds until you could take the photo, lining up included
 ```
 
-Flying time for one leg = (turn + straight distance) / `CRUISE_SPEED`. For a route with several points, add up the legs. The plane cuts corners, so the real time is about **0.8×** that.
+It follows the same route as `approach()`, turns included, so you never do the turn maths yourself. Measured: usually within 3 s; when the plane starts close to the landmark and badly placed, it can take 10–15 s longer.
 
 ### Other planes
 
 ```python
-get_other_drones()   # list of (location, heading) of everyone else's plane
+for plane in get_other_drones():                 # everyone else's plane
+    plane.name, plane.loc, plane.heading
+    get_eta(plane.loc, plane.heading, landmark)  # how long they'd need for the same landmark
 ```
 
-What you know about each landmark: where, which side, `price`, `public`. What you know about the others: where they are and where they point. The rest is up to you.
+Will someone beat you to it? Compare their `get_eta` with yours. (It's what a good pilot would need: they may not fly the best route.)
+
+### The round and your score
+
+```python
+get_seconds_left()   # seconds left in the round, None outside one
+get_score()          # {"money": ..., "rank": ..., "players": ..., "leader": {...}, "ahead": {...}} in a round
+```
+
+What you know about each landmark: where, which side, `price`, `public`, `head_start`. What you know about the others: who, where, which way, and how long they'd need. The rest is up to you.
 
 ---
 
 ## Anytime: landing and coming home
 
 ```python
-land_at(my_vehicle, lat, lon)   # glides to (lat, lon) and lands there (in game.py)
+land_at(my_vehicle, lat, lon)   # glides to (lat, lon) and lands there (in toolkit.py)
 ```
 
 It flies in a straight line from wherever the plane is and comes down on the way, so the landing is short if you arrive **low and already pointing at the landing spot**. It touches down within about 100 m of the point and rolls a bit.

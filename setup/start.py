@@ -26,9 +26,14 @@ import zipfile
 PYTHON_VERSION = "3.12" # The Python the GCS runs on, downloaded by uv (every package has ready-made builds for it)
 CODE_ZIP = "https://github.com/starbound-team/ardupilot-workshop/archive/refs/heads/main.zip"
 GCS_URL = f"http://localhost:{os.environ.get('GCS_PORT', 5000)}" # GCS_PORT: the same setting as app.py's
-# The fallback plane for this laptop: arduplane (a static build, runs on any 64-bit Linux) and its defaults,
-# laid out like an ArduPilot folder so the backend's local_sitl.py finds it in <workshop>/sitl
-SITL_ARCHIVE = "https://github.com/starbound-team/ardupilot-workshop/releases/download/sitl-linux/arduplane-sitl-linux-x86_64.tar.gz"
+# The fallback plane for this laptop: ArduPilot's own SITL build of ArduPlane 4.7.2 (static, runs on any 64-bit Linux)
+# and its defaults, laid out like an ArduPilot folder so the backend's local_sitl.py finds it in <workshop>/sitl
+SITL_FILES = {
+    os.path.join("build", "sitl", "bin", "arduplane"):
+        "https://firmware.ardupilot.org/Plane/stable-4.7.2/SITL_x86_64_linux_gnu/arduplane",
+    os.path.join("Tools", "autotest", "models", "plane.parm"):
+        "https://raw.githubusercontent.com/ArduPilot/ardupilot/Plane-4.7.2/Tools/autotest/models/plane.parm",
+}
 WINDOWS = os.name == "nt"
 
 parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
@@ -36,8 +41,9 @@ parser.add_argument("--dir", default=os.path.join(os.path.expanduser("~"), "ardu
                     help="Where the workshop code goes (default: ardupilot-workshop in your home folder)")
 parser.add_argument("--source", default=os.environ.get("WORKSHOP_SOURCE") or CODE_ZIP,
                     help="Where to get the code: a .zip URL or a local .zip file")
-parser.add_argument("--sitl-source", default=os.environ.get("WORKSHOP_SITL") or SITL_ARCHIVE,
-                    help="Where to get the fallback SITL: a .tar.gz URL or a local .tar.gz file")
+parser.add_argument("--sitl-source", default=os.environ.get("WORKSHOP_SITL"),
+                    help="A local .tar.gz with the fallback SITL laid out like an ArduPilot folder, for setting up "
+                         "without internet (default: download it from ArduPilot)")
 parser.add_argument("--no-browser", action="store_true", help="Don't open the browser")
 args = parser.parse_args()
 
@@ -164,22 +170,27 @@ def get_local_sitl():
     if sitl_runs():
         done("Local SITL: ready")
         return
-    doing(f"Getting a SITL plane for this laptop from {args.sitl_source}")
     try:
-        if os.path.isfile(args.sitl_source):
-            with open(args.sitl_source, "rb") as f:
-                data = f.read()
+        if args.sitl_source:
+            doing(f"Unpacking a SITL plane for this laptop from {args.sitl_source}")
+            with tarfile.open(args.sitl_source) as archive:
+                for member in archive.getmembers():
+                    if member.name.startswith("/") or ".." in member.name.split("/"):
+                        raise ValueError(f"unexpected path in the archive: {member.name}")
+                if hasattr(tarfile, "data_filter"): # Python 3.12+: the safe way, and no warning
+                    archive.extractall(sitl, filter="data")
+                else:
+                    archive.extractall(sitl)
         else:
-            with urllib.request.urlopen(args.sitl_source, timeout=60) as response:
-                data = response.read()
-        with tarfile.open(fileobj=io.BytesIO(data)) as archive:
-            for member in archive.getmembers():
-                if member.name.startswith("/") or ".." in member.name.split("/"):
-                    raise ValueError(f"unexpected path in the archive: {member.name}")
-            if hasattr(tarfile, "data_filter"): # Python 3.12+: the safe way, and no warning
-                archive.extractall(sitl, filter="data")
-            else:
-                archive.extractall(sitl)
+            doing("Getting a SITL plane for this laptop from ArduPilot (ArduPlane 4.7.2, about 7 MB)")
+            for path, url in SITL_FILES.items():
+                target = os.path.join(sitl, path)
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with urllib.request.urlopen(url, timeout=60) as response:
+                    data = response.read()
+                with open(target + ".part", "wb") as f: # Only a complete download gets the real name
+                    f.write(data)
+                os.replace(target + ".part", target)
         os.chmod(sitl_binary, 0o755)
     except Exception as e:
         skipped(f"Local SITL: could not get it ({e}). Not needed while the organisers' planes work; run this again later")
